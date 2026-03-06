@@ -32,6 +32,7 @@ interface Order {
   assigned_to: string;
   delivery_date: string;
   order_date: string;
+  created_by: string;
   customer?: Customer;
 }
 
@@ -327,10 +328,12 @@ export default function Orders() {
                       <button onClick={() => setViewingOrder(order)} className="p-1.5 rounded hover:bg-accent transition" title={t('view')}>
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => openEdit(order)} className="p-1.5 rounded hover:bg-accent transition" title={t('edit')}>
-                        <Pencil size={16} />
-                      </button>
-                      {userProfile?.role !== 'user' && (
+                      {(userProfile?.role !== 'user' || order.created_by === user?.id) && (
+                        <button onClick={() => openEdit(order)} className="p-1.5 rounded hover:bg-accent transition" title={t('edit')}>
+                          <Pencil size={16} />
+                        </button>
+                      )}
+                      {(userProfile?.role !== 'user' || order.created_by === user?.id) && (
                         <button onClick={() => setDeleteId(order.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
                           <Trash2 size={16} />
                         </button>
