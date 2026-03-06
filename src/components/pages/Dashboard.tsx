@@ -19,7 +19,7 @@ interface StatCard {
 }
 
 export default function Dashboard() {
-  const { t } = useApp();
+  const { t, userProfile } = useApp();
   const [stats, setStats] = useState({ revenue: 0, expenses: 0, orders: 0, products: 0 });
   const [dailySales, setDailySales] = useState<{ date: string; total: number }[]>([]);
   const [monthlySales, setMonthlySales] = useState<{ month: string; total: number }[]>([]);
@@ -32,6 +32,15 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  if (!userProfile || userProfile.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <p className="text-lg font-semibold">{t('accessDenied')}</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
+      </div>
+    );
+  }
 
   async function fetchData() {
     const [ordersRes, expensesRes, productsRes, customersRes] = await Promise.all([

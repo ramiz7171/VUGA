@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { Plus, Eye, Pencil, Trash2, X } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Order {
   id: string;
@@ -44,7 +45,8 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Orders() {
-  const { t } = useApp();
+  const { t, user, userProfile } = useApp();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -157,6 +159,7 @@ export default function Orders() {
           payment_status: orderStatus === 'paid' ? 'paid' : 'unpaid',
           notes: customerNotes,
           product_type: productType,
+          created_by: user?.id,
         });
       }
     }
@@ -167,8 +170,8 @@ export default function Orders() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t('deleteConfirm'))) return;
     await supabase.from('orders').delete().eq('id', id);
+    setDeleteId(null);
     fetchOrders();
   }
 
@@ -252,9 +255,11 @@ export default function Orders() {
                       <button onClick={() => openEdit(order)} className="p-1.5 rounded hover:bg-accent transition" title={t('edit')}>
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(order.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
-                        <Trash2 size={16} />
-                      </button>
+                      {userProfile?.role !== 'user' && (
+                        <button onClick={() => setDeleteId(order.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -383,6 +388,17 @@ export default function Orders() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={!!deleteId}
+        title={t('delete')}
+        message={t('deleteWarning')}
+        variant="danger"
+        confirmLabel={t('delete')}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

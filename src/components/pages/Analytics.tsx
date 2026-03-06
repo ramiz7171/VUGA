@@ -11,7 +11,7 @@ import {
 const COLORS = ['#102041', '#DBDDEA', '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function Analytics() {
-  const { t } = useApp();
+  const { t, userProfile } = useApp();
   const [revenueOverTime, setRevenueOverTime] = useState<{ date: string; revenue: number }[]>([]);
   const [profitTrends, setProfitTrends] = useState<{ date: string; profit: number }[]>([]);
   const [productSales, setProductSales] = useState<{ name: string; value: number }[]>([]);
@@ -19,6 +19,15 @@ export default function Analytics() {
   const [expenseBreakdown, setExpenseBreakdown] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => { fetchAnalytics(); }, []);
+
+  if (!userProfile || userProfile.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <p className="text-lg font-semibold">{t('accessDenied')}</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
+      </div>
+    );
+  }
 
   async function fetchAnalytics() {
     const [ordersRes, expensesRes, , customersRes] = await Promise.all([

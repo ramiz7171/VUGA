@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, X, Package } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Product {
   id: string;
@@ -17,7 +18,8 @@ interface Product {
 }
 
 export default function Inventory() {
-  const { t } = useApp();
+  const { t, userProfile } = useApp();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -33,6 +35,15 @@ export default function Inventory() {
   const [sellingPrice, setSellingPrice] = useState(0);
 
   useEffect(() => { fetchProducts(); }, []);
+
+  if (!userProfile || !['admin', 'moderator'].includes(userProfile.role)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <p className="text-lg font-semibold">{t('accessDenied')}</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
+      </div>
+    );
+  }
 
   async function fetchProducts() {
     setLoading(true);
@@ -70,8 +81,8 @@ export default function Inventory() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t('deleteConfirm'))) return;
     await supabase.from('products').delete().eq('id', id);
+    setDeleteId(null);
     fetchProducts();
   }
 
@@ -148,9 +159,11 @@ export default function Inventory() {
                       <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-accent transition" title={t('edit')}>
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
-                        <Trash2 size={16} />
-                      </button>
+                      {userProfile?.role === 'admin' && (
+                        <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -219,6 +232,17 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={!!deleteId}
+        title={t('delete')}
+        message={t('deleteWarning')}
+        variant="danger"
+        confirmLabel={t('delete')}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

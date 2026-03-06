@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Wallet, TrendingDown } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Expense {
   id: string;
@@ -17,7 +18,8 @@ interface Expense {
 const CATEGORIES = ['advertising', 'salary', 'logistics', 'officeSupplies', 'other'] as const;
 
 export default function Expenses() {
-  const { t } = useApp();
+  const { t, userProfile } = useApp();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,15 @@ export default function Expenses() {
   const [createdBy, setCreatedBy] = useState('');
 
   useEffect(() => { fetchData(); }, []);
+
+  if (!userProfile || userProfile.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <p className="text-lg font-semibold">{t('accessDenied')}</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
+      </div>
+    );
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -59,8 +70,8 @@ export default function Expenses() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t('deleteConfirm'))) return;
     await supabase.from('expenses').delete().eq('id', id);
+    setDeleteId(null);
     fetchData();
   }
 
@@ -93,7 +104,7 @@ export default function Expenses() {
             <Wallet size={28} className="text-green-500" />
           </div>
         </div>
-        <div className="bg-[var(--card)] rounded-xl p5 border border-[var(--border)] shadow-sm">
+        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-secondary)]">{t('totalExpenses')}</p>
@@ -177,7 +188,7 @@ export default function Expenses() {
                   <td className="p-4 text-[var(--text-secondary)]">{exp.note || '-'}</td>
                   <td className="p-4">{exp.created_by || '-'}</td>
                   <td className="p-4">
-                    <button onClick={() => handleDelete(exp.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
+                    <button onClick={() => setDeleteId(exp.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -187,6 +198,17 @@ export default function Expenses() {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={!!deleteId}
+        title={t('delete')}
+        message={t('deleteWarning')}
+        variant="danger"
+        confirmLabel={t('delete')}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

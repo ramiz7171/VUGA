@@ -138,6 +138,46 @@ export const translations = {
     completed: 'Tamamlanıb',
     inProgress: 'Davam edir',
     pending: 'Gözləyir',
+
+    // Auth
+    signIn: 'Daxil ol',
+    signUp: 'Qeydiyyat',
+    email: 'E-poçt',
+    password: 'Şifrə',
+    confirmPassword: 'Şifrəni təsdiqlə',
+    fullName: 'Tam ad',
+    noAccount: 'Hesabınız yoxdur?',
+    haveAccount: 'Artıq hesabınız var?',
+    signOutLabel: 'Çıxış',
+    signingIn: 'Daxil olunur...',
+    signingUp: 'Qeydiyyat olunur...',
+    authError: 'Xəta baş verdi',
+    invalidCredentials: 'Yanlış e-poçt və ya şifrə',
+    passwordMismatch: 'Şifrələr uyğun gəlmir',
+    signUpSuccess: 'Qeydiyyat uğurlu oldu! E-poçtunuzu yoxlayın.',
+    welcomeBack: 'Xoş gəlmisiniz!',
+    profile: 'Profil',
+    role: 'Rol',
+
+    // Roles
+    roleAdmin: 'Admin',
+    roleModerator: 'Moderator',
+    roleUser: 'İstifadəçi',
+
+    // User Management
+    userManagement: 'İstifadəçi İdarəetməsi',
+    searchUsers: 'İstifadəçi axtar...',
+    changeRole: 'Rolu dəyişdir',
+    roleUpdated: 'Rol yeniləndi',
+    users: 'İstifadəçilər',
+
+    // Access
+    accessDenied: 'Giriş qadağandır',
+    noPermission: 'Bu səhifəyə giriş hüququnuz yoxdur',
+
+    // Confirm Modal
+    deleteWarning: 'Bu əməliyyat geri qaytarıla bilməz.',
+    areYouSure: 'Əminsiniz?',
   },
   en: {
     // Sidebar
@@ -276,6 +316,46 @@ export const translations = {
     completed: 'Completed',
     inProgress: 'In Progress',
     pending: 'Pending',
+
+    // Auth
+    signIn: 'Sign In',
+    signUp: 'Sign Up',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    fullName: 'Full Name',
+    noAccount: "Don't have an account?",
+    haveAccount: 'Already have an account?',
+    signOutLabel: 'Sign Out',
+    signingIn: 'Signing in...',
+    signingUp: 'Signing up...',
+    authError: 'An error occurred',
+    invalidCredentials: 'Invalid email or password',
+    passwordMismatch: 'Passwords do not match',
+    signUpSuccess: 'Sign up successful! Check your email.',
+    welcomeBack: 'Welcome back!',
+    profile: 'Profile',
+    role: 'Role',
+
+    // Roles
+    roleAdmin: 'Admin',
+    roleModerator: 'Moderator',
+    roleUser: 'User',
+
+    // User Management
+    userManagement: 'User Management',
+    searchUsers: 'Search users...',
+    changeRole: 'Change Role',
+    roleUpdated: 'Role updated',
+    users: 'Users',
+
+    // Access
+    accessDenied: 'Access Denied',
+    noPermission: 'You do not have permission to access this page',
+
+    // Confirm Modal
+    deleteWarning: 'This action cannot be undone.',
+    areYouSure: 'Are you sure?',
   },
 } as const;
 
