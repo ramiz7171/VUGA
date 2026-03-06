@@ -17,7 +17,7 @@ interface Order {
   id: string;
   order_number: number;
   customer_id: string;
-  product_id: string;
+  product_type: string;
   quantity: number;
   total_price: number;
   payment_method: string;
@@ -25,6 +25,7 @@ interface Order {
   payment_type: string;
   deposit_amount: number;
   remaining_balance: number;
+  payment_type_remaining: string;
   status: string;
   notes: string;
   source: string;
@@ -32,13 +33,6 @@ interface Order {
   delivery_date: string;
   order_date: string;
   customer?: Customer;
-  product?: { name: string };
-}
-
-interface Product {
-  id: string;
-  name: string;
-  selling_price: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -48,6 +42,8 @@ const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-purple-100 text-purple-700',
 };
 
+const INPUT_CLASS = 'w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20';
+
 export default function Orders() {
   const { t, user, userProfile } = useApp();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -56,29 +52,30 @@ export default function Orders() {
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Form state - Customer Info
+  // Form state — Customer Info
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
 
-  // Form state - Order Info
-  const [selectedProduct, setSelectedProduct] = useState('');
+  // Form state — Order Info
+  const [productName, setProductName] = useState('');
   const [source, setSource] = useState('instagram');
   const [qty, setQty] = useState(1);
-  const [price, setPrice] = useState(0);
-  const [orderStatus, setOrderStatus] = useState('not_started');
-  const [customerNotes, setCustomerNotes] = useState('');
+  const [amount, setAmount] = useState(0);
+  const [orderNotes, setOrderNotes] = useState('');
 
-  // Form state - Payment
-  const [paymentType, setPaymentType] = useState('full');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [depositAmount, setDepositAmount] = useState(0);
+  // Form state — Payment
+  const [paymentType, setPaymentType] = useState('cash');           // Payment Type dropdown (Cash/Card/Bank Transfer)
+  const [paymentMethod, setPaymentMethod] = useState('full');       // Payment Method toggle (full / deposit)
+  const [fullPaymentAmount, setFullPaymentAmount] = useState(0);    // Full Payment input
+  const [depositAmount, setDepositAmount] = useState(0);            // Deposit input
+  const [remainingPaymentType, setRemainingPaymentType] = useState('cash'); // Remaining Balance payment type
+  const [remainingBalance, setRemainingBalance] = useState(0);      // Remaining Balance amount
 
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
@@ -86,23 +83,31 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders();
-    fetchProducts();
     fetchCustomers();
   }, []);
+
+  // Auto-calculate remaining balance when deposit changes
+  useEffect(() => {
+    if (paymentMethod === 'deposit') {
+      setRemainingBalance(Math.max(0, amount - depositAmount));
+    }
+  }, [amount, depositAmount, paymentMethod]);
+
+  // Sync full payment amount with total amount
+  useEffect(() => {
+    if (paymentMethod === 'full') {
+      setFullPaymentAmount(amount);
+    }
+  }, [amount, paymentMethod]);
 
   async function fetchOrders() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(*), product:products(name)')
+      .select('*, customer:customers(*)')
       .order('order_date', { ascending: false });
     setOrders(data || []);
     setLoading(false);
-  }
-
-  async function fetchProducts() {
-    const { data } = await supabase.from('products').select('id, name, selling_price');
-    setProducts(data || []);
   }
 
   async function fetchCustomers() {
@@ -134,17 +139,20 @@ export default function Orders() {
     setOrderDate(new Date().toISOString().split('T')[0]);
     setDeliveryDate('');
     setAssignedTo('');
-    setSelectedProduct('');
+    setProductName('');
     setSource('instagram');
     setQty(1);
-    setPrice(0);
-    setOrderStatus('not_started');
-    setCustomerNotes('');
-    setPaymentType('full');
-    setPaymentMethod('cash');
+    setAmount(0);
+    setOrderNotes('');
+    setPaymentType('cash');
+    setPaymentMethod('full');
+    setFullPaymentAmount(0);
     setDepositAmount(0);
+    setRemainingPaymentType('cash');
+    setRemainingBalance(0);
     setEditingOrder(null);
     setCustomerSearch('');
+    setShowCustomerDropdown(false);
   }
 
   function selectCustomer(c: Customer) {
@@ -162,33 +170,35 @@ export default function Orders() {
     setOrderDate(order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : '');
     setDeliveryDate(order.delivery_date || '');
     setAssignedTo(order.assigned_to || '');
-    setSelectedProduct(order.product_id || '');
+    setProductName(order.product_type || '');
     setSource(order.source || 'other');
     setQty(order.quantity);
-    setPrice(Number(order.total_price));
-    setOrderStatus(order.status);
-    setCustomerNotes(order.notes || '');
-    setPaymentType(order.payment_type || 'full');
-    setPaymentMethod(order.payment_method || 'cash');
+    setAmount(Number(order.total_price));
+    setOrderNotes(order.notes || '');
+    setPaymentType(order.payment_method || 'cash');
+    setPaymentMethod(order.payment_type || 'full');
+    setFullPaymentAmount(order.payment_type === 'full' ? Number(order.total_price) : 0);
     setDepositAmount(Number(order.deposit_amount || 0));
+    setRemainingPaymentType(order.payment_type_remaining || 'cash');
+    setRemainingBalance(Number(order.remaining_balance || 0));
     setShowForm(true);
   }
-
-  const remainingBalance = paymentType === 'deposit' ? Math.max(0, price - depositAmount) : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const orderPayload = {
+      product_type: productName,
       quantity: qty,
-      total_price: price,
-      payment_method: paymentMethod,
-      payment_type: paymentType,
-      deposit_amount: paymentType === 'deposit' ? depositAmount : price,
-      remaining_balance: paymentType === 'deposit' ? remainingBalance : 0,
-      status: orderStatus,
-      payment_status: paymentType === 'full' || remainingBalance === 0 ? 'paid' : 'partially_paid',
-      notes: customerNotes,
+      total_price: amount,
+      payment_method: paymentType,               // Cash/Card/Bank Transfer
+      payment_type: paymentMethod,                // full/deposit
+      deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
+      remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
+      payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
+      status: editingOrder ? editingOrder.status : 'not_started',
+      payment_status: paymentMethod === 'full' || remainingBalance === 0 ? 'paid' : 'partially_paid',
+      notes: orderNotes,
       source,
       delivery_date: deliveryDate || null,
       assigned_to: assignedTo,
@@ -200,7 +210,6 @@ export default function Orders() {
         await supabase.from('customers').update({ name: customerName, phone: customerPhone }).eq('id', editingOrder.customer_id);
       }
     } else {
-      // Find or create customer
       let customerId: string | null = null;
       const existing = customers.find((c) => c.name === customerName && c.phone === customerPhone);
       if (existing) {
@@ -214,7 +223,6 @@ export default function Orders() {
         await supabase.from('orders').insert({
           ...orderPayload,
           customer_id: customerId,
-          product_id: selectedProduct || null,
           order_date: orderDate,
           created_by: user?.id,
         });
@@ -242,18 +250,19 @@ export default function Orders() {
 
   const sourceLabel = (s: string) => {
     const map: Record<string, string> = {
-      instagram: t('instagram'), facebook: t('facebook'), referral: t('referral'), other: t('other'),
+      instagram: t('instagram'), facebook: t('facebook'), other: t('other'),
     };
     return map[s] || s;
   };
 
-  const paymentLabel = (s: string) => {
+  const paymentTypeLabel = (s: string) => {
     const map: Record<string, string> = { cash: t('cash'), card: t('card'), bank_transfer: t('bankTransfer') };
     return map[s] || s;
   };
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">{t('orders')}</h1>
         <button
@@ -261,7 +270,7 @@ export default function Orders() {
           className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition"
         >
           <Plus size={18} />
-          {t('createNewOrder')}
+          {t('newOrder')}
         </button>
       </div>
 
@@ -349,17 +358,18 @@ export default function Orders() {
                 <div><span className="text-[var(--text-secondary)]">{t('phone')}:</span> <span className="font-medium">{viewingOrder.customer?.phone || '-'}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('source')}:</span> <span className="font-medium">{sourceLabel(viewingOrder.source)}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('assignedTo')}:</span> <span className="font-medium">{viewingOrder.assigned_to || '-'}</span></div>
-                <div><span className="text-[var(--text-secondary)]">{t('productName')}:</span> <span className="font-medium">{viewingOrder.product?.name || '-'}</span></div>
+                <div><span className="text-[var(--text-secondary)]">{t('productName')}:</span> <span className="font-medium">{viewingOrder.product_type || '-'}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('quantity')}:</span> <span className="font-medium">{viewingOrder.quantity}</span></div>
-                <div><span className="text-[var(--text-secondary)]">{t('totalPrice')}:</span> <span className="font-medium">₼{Number(viewingOrder.total_price).toLocaleString()}</span></div>
+                <div><span className="text-[var(--text-secondary)]">{t('amount')}:</span> <span className="font-medium">₼{Number(viewingOrder.total_price).toLocaleString()}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('status')}:</span> <span className="font-medium">{statusLabel(viewingOrder.status)}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('deliveryDate')}:</span> <span className="font-medium">{viewingOrder.delivery_date || '-'}</span></div>
-                <div><span className="text-[var(--text-secondary)]">{t('paymentMethod')}:</span> <span className="font-medium">{paymentLabel(viewingOrder.payment_method)}</span></div>
-                <div><span className="text-[var(--text-secondary)]">{t('paymentType')}:</span> <span className="font-medium">{viewingOrder.payment_type === 'deposit' ? t('deposit') : t('fullPayment')}</span></div>
+                <div><span className="text-[var(--text-secondary)]">{t('paymentType')}:</span> <span className="font-medium">{paymentTypeLabel(viewingOrder.payment_method)}</span></div>
+                <div><span className="text-[var(--text-secondary)]">{t('paymentMethod')}:</span> <span className="font-medium">{viewingOrder.payment_type === 'deposit' ? t('deposit') : t('fullPayment')}</span></div>
                 {viewingOrder.payment_type === 'deposit' && (
                   <>
                     <div><span className="text-[var(--text-secondary)]">{t('depositAmount')}:</span> <span className="font-medium">₼{Number(viewingOrder.deposit_amount).toLocaleString()}</span></div>
                     <div><span className="text-[var(--text-secondary)]">{t('remainingBalance')}:</span> <span className="font-medium text-red-500">₼{Number(viewingOrder.remaining_balance).toLocaleString()}</span></div>
+                    <div><span className="text-[var(--text-secondary)]">{t('remainingPaymentType')}:</span> <span className="font-medium">{paymentTypeLabel(viewingOrder.payment_type_remaining)}</span></div>
                   </>
                 )}
               </div>
@@ -376,23 +386,26 @@ export default function Orders() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setShowForm(false); resetForm(); }}>
           <div className="bg-[var(--card)] rounded-xl p-6 max-w-2xl w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold">{editingOrder ? t('edit') : t('createNewOrder')}</h2>
+              <h2 className="text-lg font-bold">{editingOrder ? t('edit') : t('newOrder')}</h2>
               <button onClick={() => { setShowForm(false); resetForm(); }} className="p-1 rounded hover:bg-accent"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Customer Info Section */}
+
+              {/* ── SECTION: Customer Information ── */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-[var(--text-secondary)]">{t('customerInfo')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <h3 className="text-sm font-semibold mb-4 text-[var(--text-secondary)] uppercase tracking-wide">{t('customerInfo')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Customer Name (searchable) */}
                   <div className="relative">
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('customerName')}</label>
                     <input
                       value={customerSearch}
                       onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value); setShowCustomerDropdown(true); }}
                       onFocus={() => setShowCustomerDropdown(true)}
-                      placeholder={t('customerName')}
+                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                       required
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none"
+                      className={INPUT_CLASS}
                     />
                     {showCustomerDropdown && filteredCustomers.length > 0 && (
                       <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg max-h-40 overflow-y-auto">
@@ -400,7 +413,7 @@ export default function Orders() {
                           <button
                             key={c.id}
                             type="button"
-                            onClick={() => selectCustomer(c)}
+                            onMouseDown={() => selectCustomer(c)}
                             className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 transition"
                           >
                             {c.name} {c.phone ? `— ${c.phone}` : ''}
@@ -409,116 +422,191 @@ export default function Orders() {
                       </div>
                     )}
                   </div>
-                  <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder={t('phone')}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
+
+                  {/* Customer Phone Number */}
                   <div>
-                    <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('orderDate')}</label>
-                    <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('customerPhoneNumber')}</label>
+                    <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className={INPUT_CLASS} />
                   </div>
+
+                  {/* Order Date */}
                   <div>
-                    <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('deliveryDate')}</label>
-                    <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)}
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('orderDate')}</label>
+                    <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} className={INPUT_CLASS} />
                   </div>
-                  <input value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} placeholder={t('assignedTo')}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none md:col-span-2" />
+
+                  {/* Delivery Date */}
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('deliveryDate')}</label>
+                    <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className={INPUT_CLASS} />
+                  </div>
+
+                  {/* Order Assigned To */}
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('orderAssignedTo')}</label>
+                    <input value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={INPUT_CLASS} />
+                  </div>
                 </div>
               </div>
 
-              {/* Order Info Section */}
+              {/* ── SECTION: Order Information ── */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-[var(--text-secondary)]">{t('orderInfo')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <select value={selectedProduct} onChange={(e) => {
-                    setSelectedProduct(e.target.value);
-                    const p = products.find((pr) => pr.id === e.target.value);
-                    if (p) setPrice(Number(p.selling_price) * qty);
-                  }}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none">
-                    <option value="">{t('productName')}</option>
-                    {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <select value={source} onChange={(e) => setSource(e.target.value)}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none">
-                    <option value="instagram">{t('instagram')}</option>
-                    <option value="facebook">{t('facebook')}</option>
-                    <option value="referral">{t('referral')}</option>
-                    <option value="other">{t('other')}</option>
-                  </select>
-                  <input type="number" value={qty} onChange={(e) => {
-                    const q = Number(e.target.value);
-                    setQty(q);
-                    const p = products.find((pr) => pr.id === selectedProduct);
-                    if (p) setPrice(Number(p.selling_price) * q);
-                  }} min={1} placeholder={t('quantity')}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
-                  <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} min={0} step="0.01" placeholder={t('amount')}
-                    className="border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
+                <h3 className="text-sm font-semibold mb-4 text-[var(--text-secondary)] uppercase tracking-wide">{t('orderInfo')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Product Name (text input) */}
                   <div>
-                    <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('orderStatusLabel')}</label>
-                    <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none">
-                      <option value="not_started">{t('notStarted')}</option>
-                      <option value="started">{t('started')}</option>
-                      <option value="finished">{t('finished')}</option>
-                      <option value="paid">{t('paid')}</option>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('productName')}</label>
+                    <input value={productName} onChange={(e) => setProductName(e.target.value)} className={INPUT_CLASS} />
+                  </div>
+
+                  {/* Source */}
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('source')}</label>
+                    <select value={source} onChange={(e) => setSource(e.target.value)} className={INPUT_CLASS}>
+                      <option value="instagram">{t('instagram')}</option>
+                      <option value="facebook">{t('facebook')}</option>
+                      <option value="other">{t('other')}</option>
                     </select>
                   </div>
+
+                  {/* Quantity */}
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('quantity')}</label>
+                    <input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min={1} className={INPUT_CLASS} />
+                  </div>
+
+                  {/* Amount */}
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('amount')}</label>
+                    <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} min={0} step="0.01" className={INPUT_CLASS} />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('notes')}</label>
+                    <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} rows={3}
+                      className={`${INPUT_CLASS} resize-none`} />
+                  </div>
                 </div>
-                <textarea value={customerNotes} onChange={(e) => setCustomerNotes(e.target.value)} placeholder={t('additionalNotes')} rows={2}
-                  className="w-full mt-3 border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none resize-none" />
               </div>
 
-              {/* Payment Section */}
+              {/* ── SECTION: Payment ── */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-[var(--text-secondary)]">{t('paymentInfo')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <h3 className="text-sm font-semibold mb-4 text-[var(--text-secondary)] uppercase tracking-wide">{t('paymentInfo')}</h3>
+                <div className="space-y-4">
+
+                  {/* Payment Type (Cash / Card / Bank Transfer) */}
                   <div>
-                    <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('paymentMethod')}</label>
-                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none">
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('paymentType')}</label>
+                    <select value={paymentType} onChange={(e) => setPaymentType(e.target.value)} className={INPUT_CLASS}>
                       <option value="cash">{t('cash')}</option>
                       <option value="card">{t('card')}</option>
                       <option value="bank_transfer">{t('bankTransfer')}</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('paymentType')}</label>
-                    <select value={paymentType} onChange={(e) => setPaymentType(e.target.value)}
-                      className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none">
-                      <option value="full">{t('fullPayment')}</option>
-                      <option value="deposit">{t('deposit')}</option>
-                    </select>
-                  </div>
-                </div>
 
-                {paymentType === 'deposit' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                    <div>
-                      <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('depositAmount')}</label>
-                      <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(Number(e.target.value))} min={0} step="0.01"
-                        className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('remainingBalance')}</label>
-                      <div className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] text-red-500 font-medium">
-                        ₼{remainingBalance.toLocaleString()}
-                      </div>
+                  {/* Payment Method — Full Payment / Deposit toggle */}
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-secondary)] mb-2 block">{t('paymentMethod')}</label>
+                    <div className="flex rounded-lg border border-[var(--border)] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('full')}
+                        className={`flex-1 py-2.5 text-sm font-medium transition ${
+                          paymentMethod === 'full'
+                            ? 'bg-primary text-white'
+                            : 'bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-accent/50'
+                        }`}
+                      >
+                        {t('fullPayment')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('deposit')}
+                        className={`flex-1 py-2.5 text-sm font-medium transition border-l border-[var(--border)] ${
+                          paymentMethod === 'deposit'
+                            ? 'bg-primary text-white'
+                            : 'bg-[var(--bg)] text-[var(--text-secondary)] hover:bg-accent/50'
+                        }`}
+                      >
+                        {t('deposit')}
+                      </button>
                     </div>
                   </div>
-                )}
+
+                  {/* Full Payment — amount input */}
+                  {paymentMethod === 'full' && (
+                    <div>
+                      <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('fullPaymentAmount')}</label>
+                      <input
+                        type="number"
+                        value={fullPaymentAmount}
+                        onChange={(e) => setFullPaymentAmount(Number(e.target.value))}
+                        min={0}
+                        step="0.01"
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+                  )}
+
+                  {/* Deposit — amount input + Remaining Balance */}
+                  {paymentMethod === 'deposit' && (
+                    <>
+                      <div>
+                        <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('depositAmount')}</label>
+                        <input
+                          type="number"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(Number(e.target.value))}
+                          min={0}
+                          step="0.01"
+                          className={INPUT_CLASS}
+                        />
+                      </div>
+
+                      {/* Remaining Balance sub-section */}
+                      <div className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg)]/50 space-y-3">
+                        <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">{t('remainingBalance')}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('paymentType')}</label>
+                            <select
+                              value={remainingPaymentType}
+                              onChange={(e) => setRemainingPaymentType(e.target.value)}
+                              className={INPUT_CLASS}
+                            >
+                              <option value="cash">{t('cash')}</option>
+                              <option value="card">{t('card')}</option>
+                              <option value="bank_transfer">{t('bankTransfer')}</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('amount')}</label>
+                            <input
+                              type="number"
+                              value={remainingBalance}
+                              onChange={(e) => setRemainingBalance(Number(e.target.value))}
+                              min={0}
+                              step="0.01"
+                              className={INPUT_CLASS}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Submit */}
-              <div className="flex gap-3 justify-end">
+              {/* ── Buttons ── */}
+              <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
-                  className="px-4 py-2.5 rounded-lg text-sm border border-[var(--border)] hover:bg-accent transition">
+                  className="px-5 py-2.5 rounded-lg text-sm border border-[var(--border)] hover:bg-accent transition font-medium">
                   {t('cancel')}
                 </button>
                 <button type="submit"
                   className="px-6 py-2.5 rounded-lg text-sm bg-primary text-white font-medium hover:opacity-90 transition">
-                  {editingOrder ? t('save') : t('create')}
+                  {editingOrder ? t('save') : t('createOrder')}
                 </button>
               </div>
             </form>

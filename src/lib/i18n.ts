@@ -79,6 +79,12 @@ export const translations = {
     depositAmount: 'Əvvəlcədən Ödəniş Məbləği',
     remainingBalance: 'Qalıq Məbləğ',
     searchOrders: 'Ad, sifariş nömrəsi və ya telefon ilə axtar...',
+    createOrder: 'Sifariş Yarat',
+    customerPhoneNumber: 'Müştəri Telefon Nömrəsi',
+    orderAssignedTo: 'Sifarişi Təyin Et',
+    remainingPaymentType: 'Qalıq Ödəniş Növü',
+    fullPaymentAmount: 'Tam Ödəniş Məbləği',
+    newOrder: 'Yeni Sifariş',
 
     // Order statuses
     notStarted: 'Başlanmayıb',
@@ -278,6 +284,12 @@ export const translations = {
     depositAmount: 'Deposit Amount',
     remainingBalance: 'Remaining Balance',
     searchOrders: 'Search by name, order number, or phone...',
+    createOrder: 'Create Order',
+    customerPhoneNumber: 'Customer Phone Number',
+    orderAssignedTo: 'Order Assigned To',
+    remainingPaymentType: 'Remaining Payment Type',
+    fullPaymentAmount: 'Full Payment Amount',
+    newOrder: 'New Order',
 
     // Order statuses
     notStarted: 'Not Started',
