@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
-import { User, Mail, Phone, Lock, Shield, Globe, Bell, Check, AlertCircle, LogOut } from 'lucide-react';
+import { User, Mail, Phone, Lock, Shield, Globe, Check, AlertCircle, LogOut } from 'lucide-react';
 
 export default function Settings() {
-  const { t, userProfile, user, refreshProfile, signOut } = useApp();
+  const { t, userProfile, refreshProfile, signOut } = useApp();
 
   // Account info
   const [name, setName] = useState('');
