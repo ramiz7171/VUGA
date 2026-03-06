@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { DollarSign, ShoppingCart, Package, TrendingDown } from 'lucide-react';
 
-const COLORS = ['#102041', '#DBDDEA', '#6366f1', '#f59e0b', '#10b981', '#ef4444'];
+const COLORS = ['#102041', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 interface StatCard {
   label: string;
@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [monthlySales, setMonthlySales] = useState<{ month: string; total: number }[]>([]);
   const [dailyProfit, setDailyProfit] = useState<{ date: string; profit: number }[]>([]);
   const [monthlyProfit, setMonthlyProfit] = useState<{ month: string; profit: number }[]>([]);
-  const [salesSources, setSalesSources] = useState<{ name: string; value: number }[]>([]);
+  const [sourcesDist, setSourcesDist] = useState<{ name: string; value: number }[]>([]);
   const [expenseDist, setExpenseDist] = useState<{ name: string; value: number }[]>([]);
   const [orderStatusDist, setOrderStatusDist] = useState<{ name: string; value: number }[]>([]);
 
@@ -46,8 +46,8 @@ export default function Dashboard() {
     const [ordersRes, expensesRes, productsRes, customersRes] = await Promise.all([
       supabase.from('orders').select('*'),
       supabase.from('expenses').select('*'),
-      supabase.from('products').select('*'),
-      supabase.from('customers').select('*'),
+      supabase.from('products').select('id'),
+      supabase.from('customers').select('source'),
     ]);
 
     const orders = ordersRes.data || [];
@@ -58,12 +58,7 @@ export default function Dashboard() {
     // Stats
     const totalRevenue = orders.reduce((s, o) => s + Number(o.total_price || 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-    setStats({
-      revenue: totalRevenue,
-      expenses: totalExpenses,
-      orders: orders.length,
-      products: products.length,
-    });
+    setStats({ revenue: totalRevenue, expenses: totalExpenses, orders: orders.length, products: products.length });
 
     // Daily Sales (last 7 days)
     const dailyMap = new Map<string, number>();
@@ -71,11 +66,12 @@ export default function Dashboard() {
       const d = new Date(o.order_date).toISOString().split('T')[0];
       dailyMap.set(d, (dailyMap.get(d) || 0) + Number(o.total_price || 0));
     });
-    const sortedDaily = Array.from(dailyMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-7)
-      .map(([date, total]) => ({ date: date.slice(5), total }));
-    setDailySales(sortedDaily);
+    setDailySales(
+      Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-7)
+        .map(([date, total]) => ({ date: date.slice(5), total }))
+    );
 
     // Monthly Sales
     const monthlyMap = new Map<string, number>();
@@ -93,17 +89,14 @@ export default function Dashboard() {
     // Daily Profit
     const dailyExpMap = new Map<string, number>();
     expenses.forEach((e) => {
-      const d = e.date;
-      dailyExpMap.set(d, (dailyExpMap.get(d) || 0) + Number(e.amount || 0));
+      dailyExpMap.set(e.date, (dailyExpMap.get(e.date) || 0) + Number(e.amount || 0));
     });
-    const profitDaily = Array.from(dailyMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-7)
-      .map(([date, total]) => ({
-        date: date.slice(5),
-        profit: total - (dailyExpMap.get(date) || 0),
-      }));
-    setDailyProfit(profitDaily);
+    setDailyProfit(
+      Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-7)
+        .map(([date, total]) => ({ date: date.slice(5), profit: total - (dailyExpMap.get(date) || 0) }))
+    );
 
     // Monthly Profit
     const monthlyExpMap = new Map<string, number>();
@@ -115,19 +108,16 @@ export default function Dashboard() {
       Array.from(monthlyMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .slice(-6)
-        .map(([month, total]) => ({
-          month,
-          profit: total - (monthlyExpMap.get(month) || 0),
-        }))
+        .map(([month, total]) => ({ month, profit: total - (monthlyExpMap.get(month) || 0) }))
     );
 
-    // Sales Sources (from customers)
-    const sourceMap = new Map<string, number>();
+    // Source Distribution (from orders.source)
+    const srcMap = new Map<string, number>();
     customers.forEach((c) => {
       const src = c.source || 'other';
-      sourceMap.set(src, (sourceMap.get(src) || 0) + 1);
+      srcMap.set(src, (srcMap.get(src) || 0) + 1);
     });
-    setSalesSources(Array.from(sourceMap.entries()).map(([name, value]) => ({ name, value })));
+    setSourcesDist(Array.from(srcMap.entries()).map(([name, value]) => ({ name, value })));
 
     // Expense Distribution
     const expCatMap = new Map<string, number>();
@@ -156,10 +146,7 @@ export default function Dashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm"
-          >
+          <div key={card.label} className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[var(--text-secondary)]">{card.label}</p>
@@ -171,7 +158,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Bar Charts Row */}
+      {/* Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title={t('dailySales')}>
           <ResponsiveContainer width="100%" height={250}>
@@ -222,13 +209,13 @@ export default function Dashboard() {
         </ChartCard>
       </div>
 
-      {/* Pie Charts Row */}
+      {/* Pie Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title={t('salesSources')}>
+        <ChartCard title={t('sourceDistribution')}>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
-              <Pie data={salesSources} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>
-                {salesSources.map((_, i) => (
+              <Pie data={sourcesDist} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>
+                {sourcesDist.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
@@ -252,7 +239,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title={t('orderStatus')}>
+        <ChartCard title={t('completedWork')}>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={orderStatusDist} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>

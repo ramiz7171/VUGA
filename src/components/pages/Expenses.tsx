@@ -26,10 +26,10 @@ export default function Expenses() {
 
   // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [createdBy, setCreatedBy] = useState('');
   const [category, setCategory] = useState('advertising');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [createdBy, setCreatedBy] = useState('');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -58,10 +58,10 @@ export default function Expenses() {
     if (!amount) return;
     await supabase.from('expenses').insert({
       date,
+      created_by: createdBy,
       category,
       amount: Number(amount),
       note,
-      created_by: createdBy,
     });
     setAmount('');
     setNote('');
@@ -93,28 +93,6 @@ export default function Expenses() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t('expenses')}</h1>
 
-      {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-secondary)]">{t('cashBalance')}</p>
-              <p className={`text-2xl font-bold mt-1 ${cashBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>₼{cashBalance.toLocaleString()}</p>
-            </div>
-            <Wallet size={28} className="text-green-500" />
-          </div>
-        </div>
-        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-secondary)]">{t('totalExpenses')}</p>
-              <p className="text-2xl font-bold mt-1 text-red-500">₼{totalExpenses.toLocaleString()}</p>
-            </div>
-            <TrendingDown size={28} className="text-red-500" />
-          </div>
-        </div>
-      </div>
-
       {/* Add Expense Form */}
       <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
         <h2 className="text-sm font-semibold mb-4 text-[var(--text-secondary)]">{t('addExpense')}</h2>
@@ -125,7 +103,12 @@ export default function Expenses() {
               className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('category')}</label>
+            <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('enteredBy')}</label>
+            <input value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} placeholder={t('name')}
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
+          </div>
+          <div>
+            <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('expenseType')}</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}
               className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20">
               {CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
@@ -139,11 +122,6 @@ export default function Expenses() {
           <div>
             <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('notes')}</label>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('description')}
-              className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('enteredBy')}</label>
-            <input value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} placeholder={t('name')}
               className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <button type="submit"
@@ -163,10 +141,10 @@ export default function Expenses() {
           <thead>
             <tr className="border-b border-[var(--border)]">
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('date')}</th>
-              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('category')}</th>
+              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('enteredBy')}</th>
+              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('expenseType')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('amount')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('notes')}</th>
-              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('enteredBy')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('actions')}</th>
             </tr>
           </thead>
@@ -179,6 +157,7 @@ export default function Expenses() {
               expenses.map((exp) => (
                 <tr key={exp.id} className="border-b border-[var(--border)] hover:bg-accent/30 transition">
                   <td className="p-4">{exp.date}</td>
+                  <td className="p-4">{exp.created_by || '-'}</td>
                   <td className="p-4">
                     <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-accent text-primary">
                       {categoryLabel(exp.category)}
@@ -186,7 +165,6 @@ export default function Expenses() {
                   </td>
                   <td className="p-4 font-medium text-red-500">₼{Number(exp.amount).toLocaleString()}</td>
                   <td className="p-4 text-[var(--text-secondary)]">{exp.note || '-'}</td>
-                  <td className="p-4">{exp.created_by || '-'}</td>
                   <td className="p-4">
                     <button onClick={() => setDeleteId(exp.id)} className="p-1.5 rounded hover:bg-red-100 text-red-500 transition" title={t('delete')}>
                       <Trash2 size={16} />
@@ -197,6 +175,28 @@ export default function Expenses() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Balance Cards at Bottom */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-secondary)]">{t('cashBalance')}</p>
+              <p className={`text-2xl font-bold mt-1 ${cashBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>₼{cashBalance.toLocaleString()}</p>
+            </div>
+            <Wallet size={28} className="text-green-500" />
+          </div>
+        </div>
+        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-secondary)]">{t('totalExpenses')}</p>
+              <p className="text-2xl font-bold mt-1 text-red-500">₼{totalExpenses.toLocaleString()}</p>
+            </div>
+            <TrendingDown size={28} className="text-red-500" />
+          </div>
+        </div>
       </div>
 
       {/* Delete Confirm Modal */}

@@ -67,6 +67,18 @@ export const translations = {
     additionalNotes: 'Əlavə Qeydlər',
     customerInfo: 'Müştəri Məlumatları',
     productInfo: 'Məhsul Məlumatları',
+    orderNumber: 'Sifariş Nömrəsi',
+    deliveryDate: 'Çatdırılma Tarixi',
+    assignedTo: 'Təyin edilən',
+    source: 'Mənbə',
+    orderInfo: 'Sifariş Məlumatları',
+    paymentInfo: 'Ödəniş Məlumatları',
+    paymentType: 'Ödəniş Növü',
+    fullPayment: 'Tam Ödəniş',
+    deposit: 'Əvvəlcədən Ödəniş',
+    depositAmount: 'Əvvəlcədən Ödəniş Məbləği',
+    remainingBalance: 'Qalıq Məbləğ',
+    searchOrders: 'Ad, sifariş nömrəsi və ya telefon ilə axtar...',
 
     // Order statuses
     notStarted: 'Başlanmayıb',
@@ -96,6 +108,8 @@ export const translations = {
     recordSoldProduct: 'Satılmış Mal Qeydiyyatı',
     increaseStock: 'Stoku Artır',
     decreaseStock: 'Stoku Azalt',
+    color: 'Rəng',
+    productValue: 'Məhsul Dəyəri',
 
     // Expenses
     addExpense: 'Xərc Əlavə Et',
@@ -109,6 +123,7 @@ export const translations = {
     logistics: 'Logistika',
     officeSupplies: 'Ofis Ləvazimatları',
     other: 'Digər',
+    expenseType: 'Xərc Növü',
 
     // Analytics
     revenueOverTime: 'Zamana Görə Gəlir',
@@ -116,6 +131,12 @@ export const translations = {
     productSalesDistribution: 'Məhsul Satış Bölgüsü',
     customerAcquisition: 'Müştəri Əldə Etmə Mənbələri',
     expenseBreakdown: 'Xərc Təhlili',
+    dailyRevenue: 'Gündəlik Gəlir',
+    yearlyRevenue: 'İllik Gəlir',
+    yearlySales: 'İllik Satışlar',
+    sourceDistribution: 'Mənbə Bölgüsü',
+    expenseCategories: 'Xərc Kateqoriyaları',
+    completedWork: 'Tamamlanmış İşlər',
 
     // Sources
     instagram: 'Instagram',
@@ -245,6 +266,18 @@ export const translations = {
     additionalNotes: 'Additional Notes',
     customerInfo: 'Customer Information',
     productInfo: 'Product Information',
+    orderNumber: 'Order Number',
+    deliveryDate: 'Delivery Date',
+    assignedTo: 'Assigned To',
+    source: 'Source',
+    orderInfo: 'Order Information',
+    paymentInfo: 'Payment Information',
+    paymentType: 'Payment Type',
+    fullPayment: 'Full Payment',
+    deposit: 'Deposit',
+    depositAmount: 'Deposit Amount',
+    remainingBalance: 'Remaining Balance',
+    searchOrders: 'Search by name, order number, or phone...',
 
     // Order statuses
     notStarted: 'Not Started',
@@ -274,6 +307,8 @@ export const translations = {
     recordSoldProduct: 'Record Sold Product',
     increaseStock: 'Increase Stock',
     decreaseStock: 'Decrease Stock',
+    color: 'Color',
+    productValue: 'Product Value',
 
     // Expenses
     addExpense: 'Add Expense',
@@ -287,6 +322,7 @@ export const translations = {
     logistics: 'Logistics',
     officeSupplies: 'Office Supplies',
     other: 'Other',
+    expenseType: 'Expense Type',
 
     // Analytics
     revenueOverTime: 'Revenue Over Time',
@@ -294,6 +330,12 @@ export const translations = {
     productSalesDistribution: 'Product Sales Distribution',
     customerAcquisition: 'Customer Acquisition Sources',
     expenseBreakdown: 'Expense Breakdown',
+    dailyRevenue: 'Daily Revenue',
+    yearlyRevenue: 'Yearly Revenue',
+    yearlySales: 'Yearly Sales',
+    sourceDistribution: 'Source Distribution',
+    expenseCategories: 'Expense Categories',
+    completedWork: 'Completed Work',
 
     // Sources
     instagram: 'Instagram',
