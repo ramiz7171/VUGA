@@ -8,6 +8,7 @@ import {
   Receipt,
   BarChart3,
   Users,
+  Settings,
   Sun,
   Moon,
   Languages,
@@ -21,6 +22,7 @@ const menuItems = [
   { key: 'expenses', icon: Receipt, labelKey: 'expenses' as const },
   { key: 'analytics', icon: BarChart3, labelKey: 'analytics' as const },
   { key: 'users', icon: Users, labelKey: 'users' as const },
+  { key: 'settings', icon: Settings, labelKey: 'settings' as const },
 ];
 
 export default function Sidebar() {

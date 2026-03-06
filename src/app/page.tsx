@@ -8,6 +8,7 @@ import Expenses from '@/components/pages/Expenses';
 import Analytics from '@/components/pages/Analytics';
 import AuthPage from '@/components/pages/AuthPage';
 import UserManagement from '@/components/pages/UserManagement';
+import Settings from '@/components/pages/Settings';
 import { useApp } from '@/context/AppContext';
 import { Loader2 } from 'lucide-react';
 
@@ -18,6 +19,7 @@ const pages: Record<string, React.ComponentType> = {
   expenses: Expenses,
   analytics: Analytics,
   users: UserManagement,
+  settings: Settings,
 };
 
 export default function Home() {

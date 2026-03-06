@@ -12,6 +12,9 @@ interface UserProfile {
   name: string;
   email: string;
   role: UserRole;
+  phone?: string;
+  default_currency?: string;
+  email_notifications?: boolean;
 }
 
 interface AppContextType {
@@ -29,14 +32,15 @@ interface AppContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   hasAccess: (page: string) => boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ACCESS_MAP: Record<UserRole, string[]> = {
-  admin: ['dashboard', 'orders', 'inventory', 'expenses', 'analytics', 'users'],
-  moderator: ['orders', 'inventory'],
-  user: ['orders'],
+  admin: ['dashboard', 'orders', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
+  moderator: ['orders', 'inventory', 'settings'],
+  user: ['orders', 'settings'],
 };
 
 const DEFAULT_PAGE: Record<UserRole, string> = {
@@ -155,13 +159,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return ACCESS_MAP[userProfile.role]?.includes(page) ?? false;
   };
 
+  const refreshProfile = async () => {
+    if (user) await fetchUserProfile(user.id);
+  };
+
   return (
     <AppContext.Provider
       value={{
         language, setLanguage, t, darkMode, toggleDarkMode,
         currentPage, setCurrentPage,
         user, userProfile, authLoading,
-        signIn, signUp, signOut: handleSignOut, hasAccess,
+        signIn, signUp, signOut: handleSignOut, hasAccess, refreshProfile,
       }}
     >
       {children}

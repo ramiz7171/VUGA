@@ -32,7 +32,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <img src="/logo.png" alt="VUGA" className="h-12 w-auto" />
+          <img src="/logo.png" alt="VUGA" className="h-12 w-auto dark:invert" />
         </div>
 
         {mode === 'signin' ? (

@@ -205,6 +205,30 @@ export const translations = {
     // Confirm Modal
     deleteWarning: 'Bu əməliyyat geri qaytarıla bilməz.',
     areYouSure: 'Əminsiniz?',
+
+    // Settings
+    settings: 'Tənzimləmələr',
+    accountInfo: 'Hesab Məlumatları',
+    changePassword: 'Şifrəni Dəyiş',
+    security: 'Təhlükəsizlik',
+    accountPreferences: 'Hesab Seçimləri',
+    phoneNumber: 'Telefon Nömrəsi',
+    saveChanges: 'Dəyişiklikləri Saxla',
+    currentPassword: 'Cari Şifrə',
+    newPassword: 'Yeni Şifrə',
+    confirmNewPassword: 'Yeni Şifrəni Təsdiqlə',
+    updatePassword: 'Şifrəni Yenilə',
+    logoutAllDevices: 'Bütün Cihazlardan Çıxış',
+    logoutAllDevicesDesc: 'Bütün aktiv sessiyalardan çıxış edin',
+    defaultCurrency: 'Standart Valyuta',
+    emailNotifications: 'E-poçt Bildirişləri',
+    emailNotificationsDesc: 'E-poçt bildirişlərini aktiv/deaktiv edin',
+    profileUpdated: 'Profil yeniləndi',
+    passwordUpdated: 'Şifrə yeniləndi',
+    loggedOutAll: 'Bütün cihazlardan çıxış edildi',
+    passwordTooShort: 'Şifrə ən azı 6 simvol olmalıdır',
+    savingChanges: 'Saxlanılır...',
+    updatingPassword: 'Yenilənir...',
   },
   en: {
     // Sidebar
@@ -410,6 +434,30 @@ export const translations = {
     // Confirm Modal
     deleteWarning: 'This action cannot be undone.',
     areYouSure: 'Are you sure?',
+
+    // Settings
+    settings: 'Settings',
+    accountInfo: 'Account Information',
+    changePassword: 'Change Password',
+    security: 'Security',
+    accountPreferences: 'Account Preferences',
+    phoneNumber: 'Phone Number',
+    saveChanges: 'Save Changes',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    updatePassword: 'Update Password',
+    logoutAllDevices: 'Logout From All Devices',
+    logoutAllDevicesDesc: 'Sign out from all active sessions',
+    defaultCurrency: 'Default Currency',
+    emailNotifications: 'Email Notifications',
+    emailNotificationsDesc: 'Enable or disable email notifications',
+    profileUpdated: 'Profile updated',
+    passwordUpdated: 'Password updated',
+    loggedOutAll: 'Logged out from all devices',
+    passwordTooShort: 'Password must be at least 6 characters',
+    savingChanges: 'Saving...',
+    updatingPassword: 'Updating...',
   },
 } as const;
 
