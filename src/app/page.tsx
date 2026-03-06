@@ -27,9 +27,6 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-2xl text-white">
-            V
-          </div>
           <Loader2 size={24} className="animate-spin text-primary" />
         </div>
       </div>

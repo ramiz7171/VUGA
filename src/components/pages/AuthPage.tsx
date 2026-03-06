@@ -31,11 +31,8 @@ export default function AuthPage() {
 
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-2xl text-white shadow-lg">
-            V
-          </div>
-          <span className="text-2xl font-bold tracking-wide">VUGA</span>
+        <div className="flex items-center justify-center mb-8">
+          <img src="/logo.png" alt="VUGA" className="h-12 w-auto" />
         </div>
 
         {mode === 'signin' ? (

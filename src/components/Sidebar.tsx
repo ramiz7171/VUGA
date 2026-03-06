@@ -41,10 +41,7 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-primary text-white z-50">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xl">
-          V
-        </div>
-        <span className="text-xl font-bold tracking-wide">VUGA</span>
+        <img src="/logo.png" alt="VUGA" className="h-10 w-auto" />
       </div>
 
       {/* Menu */}
