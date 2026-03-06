@@ -68,7 +68,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Safety timeout: stop loading after 5s no matter what
+    const timeout = setTimeout(() => setAuthLoading(false), 5000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user) {
         setUser(session.user);
         fetchUserProfile(session.user.id);
@@ -76,6 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAuthLoading(false);
       }
     }).catch(() => {
+      clearTimeout(timeout);
       setAuthLoading(false);
     });
 
@@ -92,7 +97,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [fetchUserProfile]);
 
   useEffect(() => {
