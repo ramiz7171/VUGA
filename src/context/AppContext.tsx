@@ -72,12 +72,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Skip auth check if Supabase is not configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setAuthLoading(false);
-      return;
-    }
-
     // Safety timeout: stop loading after 2s no matter what
     const timeout = setTimeout(() => setAuthLoading(false), 2000);
 
