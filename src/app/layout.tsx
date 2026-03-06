@@ -12,6 +12,7 @@ const geistSans = localFont({
 export const metadata: Metadata = {
   title: "VUGA - Business Management",
   description: "Modern business management dashboard",
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({
