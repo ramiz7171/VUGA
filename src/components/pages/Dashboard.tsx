@@ -33,7 +33,7 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  if (!userProfile || userProfile.role !== 'admin') {
+  if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-2">
         <p className="text-lg font-semibold">{t('accessDenied')}</p>

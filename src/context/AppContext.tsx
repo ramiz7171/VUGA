@@ -39,13 +39,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ACCESS_MAP: Record<UserRole, string[]> = {
   admin: ['dashboard', 'orders', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
-  moderator: ['orders', 'inventory', 'settings'],
+  moderator: ['dashboard', 'orders', 'inventory', 'settings'],
   user: ['orders', 'settings'],
 };
 
 const DEFAULT_PAGE: Record<UserRole, string> = {
   admin: 'dashboard',
-  moderator: 'orders',
+  moderator: 'dashboard',
   user: 'orders',
 };
 
@@ -148,7 +148,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Clear state even if signOut fails
+    }
     setUser(null);
     setUserProfile(null);
     setCurrentPage('dashboard');

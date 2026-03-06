@@ -42,8 +42,12 @@ export default function Inventory() {
 
   async function fetchProducts() {
     setLoading(true);
-    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    setProducts(data || []);
+    try {
+      const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      setProducts(data || []);
+    } catch {
+      setProducts([]);
+    }
     setLoading(false);
   }
 
@@ -162,7 +166,7 @@ export default function Inventory() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('productName')} required
                 className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('quantity')}</label>
                   <input type="number" value={stockQty} onChange={(e) => setStockQty(Number(e.target.value))} min={0}
