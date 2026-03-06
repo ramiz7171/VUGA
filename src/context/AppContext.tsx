@@ -75,6 +75,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else {
         setAuthLoading(false);
       }
+    }).catch(() => {
+      setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
