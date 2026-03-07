@@ -48,15 +48,16 @@ const COLUMN_COLORS: Record<string, string> = {
 
 const INPUT_CLASS = 'w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20';
 
-function getDeadlineColor(deliveryDate: string | null): string {
-  if (!deliveryDate) return 'border-l-gray-300 dark:border-l-gray-600';
+function getDeadlineInfo(deliveryDate: string | null): { border: string; badge: string; badgeText: string; label: string } {
+  if (!deliveryDate) return { border: 'border-l-gray-300 dark:border-l-gray-600', badge: '', badgeText: '', label: '' };
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const deadline = new Date(deliveryDate);
   const diffDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return 'border-l-red-500';
-  if (diffDays <= 3) return 'border-l-orange-400';
-  return 'border-l-green-500';
+  if (diffDays < 0) return { border: 'border-l-red-900', badge: 'bg-red-900 text-white', badgeText: 'Overdue', label: `${Math.abs(diffDays)}d overdue` };
+  if (diffDays <= 1) return { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', badgeText: 'Urgent', label: diffDays === 0 ? 'Today' : '1d left' };
+  if (diffDays <= 3) return { border: 'border-l-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', badgeText: 'Warning', label: `${diffDays}d left` };
+  return { border: 'border-l-green-500', badge: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300', badgeText: 'Safe', label: `${diffDays}d left` };
 }
 
 function formatDate(dateStr: string | null): string {
@@ -231,7 +232,9 @@ export default function OrderTracking() {
                       {...provided.droppableProps}
                       className={`flex-1 p-3 space-y-2 transition-colors ${snapshot.isDraggingOver ? 'bg-primary/5' : ''}`}
                     >
-                      {columnOrders.map((order, index) => (
+                      {columnOrders.map((order, index) => {
+                        const dl = getDeadlineInfo(order.delivery_date);
+                        return (
                         <Draggable key={order.id} draggableId={order.id} index={index}>
                           {(provided, snapshot) => (
                             <div
@@ -239,18 +242,23 @@ export default function OrderTracking() {
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                               onClick={() => openEditModal(order)}
-                              className={`bg-[var(--bg)] rounded-lg p-3 border border-[var(--border)] border-l-4 ${getDeadlineColor(order.delivery_date)} shadow-sm cursor-pointer transition-shadow ${snapshot.isDragging ? 'shadow-lg' : 'hover:shadow-md'}`}
+                              className={`bg-[var(--bg)] rounded-lg p-3 border border-[var(--border)] border-l-4 ${dl.border} shadow-sm cursor-pointer transition-shadow ${snapshot.isDragging ? 'shadow-lg' : 'hover:shadow-md'}`}
                             >
-                              {/* Order number + dates */}
+                              {/* Order number + urgency badge */}
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-xs font-mono text-[var(--text-secondary)]">#{order.order_number}</span>
+                                {dl.badge && (
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${dl.badge}`}>
+                                    {dl.badgeText} · {dl.label}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Dates row — always visible */}
                               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mb-2 text-[10px] text-[var(--text-secondary)]">
                                 <span>{t('date')}: {formatDate(order.order_date)}</span>
                                 {order.delivery_date && (
-                                  <span>{t('deliveryDate')}: {formatDate(order.delivery_date)}</span>
+                                  <span className="font-medium">{t('deliveryDate')}: {formatDate(order.delivery_date)}</span>
                                 )}
                               </div>
 
@@ -270,7 +278,8 @@ export default function OrderTracking() {
                             </div>
                           )}
                         </Draggable>
-                      ))}
+                        );
+                      })}
                       {provided.placeholder}
                       {columnOrders.length === 0 && !snapshot.isDraggingOver && (
                         <p className="text-xs text-center text-[var(--text-secondary)] py-8">{t('noData')}</p>
