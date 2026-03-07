@@ -16,6 +16,7 @@ interface OrderRaw {
   notes: string;
   status: string;
   customer_id: string;
+  created_by: string;
   customer: { name: string } | { name: string }[] | null;
 }
 
@@ -29,6 +30,7 @@ interface Order {
   notes: string;
   status: string;
   customer_id: string;
+  created_by: string;
   customerName: string;
 }
 
@@ -70,10 +72,11 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function OrderTracking() {
-  const { t, userProfile } = useApp();
+  const { t, user, userProfile } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
 
   // Edit form state
   const [editProductType, setEditProductType] = useState('');
@@ -87,7 +90,7 @@ export default function OrderTracking() {
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, customer:customers(name)')
+      .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, created_by, customer:customers(name)')
       .in('status', ['not_started', 'started', 'finished'])
       .order('order_date', { ascending: true });
     if (error) { setTimeout(() => fetchOrders(), 2000); return; }
@@ -101,14 +104,25 @@ export default function OrderTracking() {
       notes: row.notes || '',
       status: row.status,
       customer_id: row.customer_id || '',
+      created_by: row.created_by || '',
       customerName: Array.isArray(row.customer) ? row.customer[0]?.name || '-' : row.customer?.name || '-',
     }));
     setOrders(mapped);
     setLoading(false);
   }, []);
 
+  async function fetchUsers() {
+    const { data } = await supabase.from('users').select('id, name');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((u: { id: string; name: string }) => { map[u.id] = u.name; });
+      setUserMap(map);
+    }
+  }
+
   useEffect(() => {
     fetchOrders();
+    fetchUsers();
 
     const channel = supabase
       .channel('order-tracking')
@@ -122,14 +136,11 @@ export default function OrderTracking() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchOrders]);
 
-  if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-2">
-        <p className="text-lg font-semibold">{t('accessDenied')}</p>
-        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
-      </div>
-    );
-  }
+  const canEditOrder = (order: Order) => {
+    if (!userProfile) return false;
+    if (userProfile.role === 'admin' || userProfile.role === 'moderator') return true;
+    return order.created_by === user?.id;
+  };
 
   async function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
@@ -242,8 +253,8 @@ export default function OrderTracking() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              onClick={() => openEditModal(order)}
-                              className={`bg-[var(--bg)] rounded-lg p-3 border border-[var(--border)] border-l-4 ${dl.border} shadow-sm cursor-pointer transition-shadow ${snapshot.isDragging ? 'shadow-lg' : 'hover:shadow-md'}`}
+                              onClick={() => canEditOrder(order) && openEditModal(order)}
+                              className={`bg-[var(--bg)] rounded-lg p-3 border border-[var(--border)] border-l-4 ${dl.border} shadow-sm transition-shadow ${canEditOrder(order) ? 'cursor-pointer' : 'cursor-grab'} ${snapshot.isDragging ? 'shadow-lg' : 'hover:shadow-md'}`}
                             >
                               {/* Order number + urgency badge */}
                               <div className="flex items-center justify-between mb-1.5">
@@ -274,6 +285,11 @@ export default function OrderTracking() {
                               {order.assigned_to && (
                                 <p className="text-xs text-[var(--text-secondary)] truncate">
                                   {t('assignedTo')}: {order.assigned_to}
+                                </p>
+                              )}
+                              {userMap[order.created_by] && (
+                                <p className="text-xs text-[var(--text-secondary)] truncate">
+                                  {t('author')}: {userMap[order.created_by]}
                                 </p>
                               )}
                             </div>

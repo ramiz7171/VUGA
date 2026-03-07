@@ -36,8 +36,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ACCESS_MAP: Record<UserRole, string[]> = {
   admin: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
-  moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'settings'],
-  user: ['orders', 'settings'],
+  moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'settings'],
+  user: ['orders', 'orderTracking', 'inventory', 'expenses'],
 };
 
 function getInitialLanguage(): Language {

@@ -296,6 +296,20 @@ export const translations = {
     passwordTooShort: 'Şifrə ən azı 6 simvol olmalıdır',
     savingChanges: 'Saxlanılır...',
     updatingPassword: 'Yenilənir...',
+
+    // New — Author, Balance, Charts
+    author: 'Müəllif',
+    yearlyProfit: 'İllik Mənfəət',
+    day: 'Gün',
+    hour: 'Saat',
+    paymentDistribution: 'Ödəniş Bölgüsü',
+    editBalance: 'Balansı Redaktə Et',
+    newBalance: 'Yeni Balans',
+    balanceLog: 'Balans Tarixçəsi',
+    oldBalance: 'Köhnə Balans',
+    changedBy: 'Dəyişdirən',
+    reason: 'Səbəb',
+    balanceUpdated: 'Balans yeniləndi',
   },
   en: {
     // Sidebar
@@ -592,6 +606,20 @@ export const translations = {
     passwordTooShort: 'Password must be at least 6 characters',
     savingChanges: 'Saving...',
     updatingPassword: 'Updating...',
+
+    // New — Author, Balance, Charts
+    author: 'Author',
+    yearlyProfit: 'Yearly Profit',
+    day: 'Day',
+    hour: 'Hour',
+    paymentDistribution: 'Payment Distribution',
+    editBalance: 'Edit Balance',
+    newBalance: 'New Balance',
+    balanceLog: 'Balance Log',
+    oldBalance: 'Old Balance',
+    changedBy: 'Changed By',
+    reason: 'Reason',
+    balanceUpdated: 'Balance updated',
   },
 } as const;
 

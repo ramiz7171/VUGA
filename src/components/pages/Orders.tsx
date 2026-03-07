@@ -53,6 +53,7 @@ export default function Orders() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
@@ -95,6 +96,9 @@ export default function Orders() {
   const [remainingPaymentType, setRemainingPaymentType] = useState('cash');
   const [remainingBalance, setRemainingBalance] = useState(0);
 
+  // Edit status
+  const [formStatus, setFormStatus] = useState('not_started');
+
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -102,6 +106,7 @@ export default function Orders() {
   useEffect(() => {
     fetchOrders();
     fetchCustomers();
+    fetchUsers();
 
     // Real-time subscription for sync with Order Tracking board
     const channel = supabase
@@ -151,6 +156,15 @@ export default function Orders() {
     const { data, error } = await supabase.from('customers').select('*');
     if (error) { setTimeout(() => fetchCustomers(), 2000); return; }
     setCustomers(data || []);
+  }
+
+  async function fetchUsers() {
+    const { data } = await supabase.from('users').select('id, name');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((u: { id: string; name: string }) => { map[u.id] = u.name; });
+      setUserMap(map);
+    }
   }
 
   const hasActiveFilters = filterDateFrom || filterDateTo || filterOrderNumber || filterCustomerName || filterStatus || filterDeliveryFrom || filterDeliveryTo || filterAmountMin || filterAmountMax;
@@ -209,7 +223,7 @@ export default function Orders() {
     setFullPaymentAmount(0); setDepositAmount(0);
     setRemainingPaymentType('cash'); setRemainingBalance(0);
     setEditingOrder(null); setCustomerSearch('');
-    setShowCustomerDropdown(false);
+    setShowCustomerDropdown(false); setFormStatus('not_started');
   }
 
   function selectCustomer(c: Customer) {
@@ -238,6 +252,7 @@ export default function Orders() {
     setDepositAmount(Number(order.deposit_amount || 0));
     setRemainingPaymentType(order.payment_type_remaining || 'cash');
     setRemainingBalance(Number(order.remaining_balance || 0));
+    setFormStatus(order.status || 'not_started');
     setShowForm(true);
   }
 
@@ -253,7 +268,7 @@ export default function Orders() {
       deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
       remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
       payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
-      status: editingOrder ? editingOrder.status : 'not_started',
+      status: editingOrder ? formStatus : 'not_started',
       payment_status: paymentMethod === 'full' || remainingBalance === 0 ? 'paid' : 'partially_paid',
       notes: orderNotes,
       source,
@@ -326,7 +341,7 @@ export default function Orders() {
     return map[s] || s;
   };
 
-  const canChangeStatus = userProfile?.role === 'admin' || userProfile?.role === 'moderator';
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <div className="space-y-4">
@@ -418,14 +433,15 @@ export default function Orders() {
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('status')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('deliveryDate')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('amount')}</th>
+              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('author')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="p-8 text-center text-[var(--text-secondary)]">{t('loading')}</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-[var(--text-secondary)]">{t('loading')}</td></tr>
             ) : filteredOrders.length === 0 ? (
-              <tr><td colSpan={7} className="p-8 text-center text-[var(--text-secondary)]">
+              <tr><td colSpan={8} className="p-8 text-center text-[var(--text-secondary)]">
                 <div className="flex flex-col items-center gap-2">
                   <ShoppingCart size={40} className="text-[var(--text-secondary)]" />
                   {t('noData')}
@@ -438,22 +454,17 @@ export default function Orders() {
                   <td className="p-4 font-mono text-xs">#{order.order_number}</td>
                   <td className="p-4 font-medium">{order.customer?.name || '-'}</td>
                   <td className="p-4">
-                    {canChangeStatus ? (
-                      <StatusDropdown
-                        currentStatus={order.status}
-                        isOpen={statusDropdownId === order.id}
-                        onToggle={() => setStatusDropdownId(statusDropdownId === order.id ? null : order.id)}
-                        onSelect={(status) => handleStatusChange(order.id, status)}
-                        statusLabel={statusLabel}
-                      />
-                    ) : (
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] || ''}`}>
-                        {statusLabel(order.status)}
-                      </span>
-                    )}
+                    <StatusDropdown
+                      currentStatus={order.status}
+                      isOpen={statusDropdownId === order.id}
+                      onToggle={() => setStatusDropdownId(statusDropdownId === order.id ? null : order.id)}
+                      onSelect={(status) => handleStatusChange(order.id, status)}
+                      statusLabel={statusLabel}
+                    />
                   </td>
                   <td className="p-4 text-[var(--text-secondary)]">{order.delivery_date || '-'}</td>
                   <td className="p-4 font-medium">₼{Number(order.total_price).toLocaleString()}</td>
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">{userMap[order.created_by] || '-'}</td>
                   <td className="p-4">
                     <div className="flex gap-1">
                       <button onClick={() => setViewingOrder(order)} className="p-1.5 rounded hover:bg-accent transition" title={t('view')}>
@@ -478,17 +489,19 @@ export default function Orders() {
         </table>
       </div>
 
-      {/* Total Summary — bottom right */}
-      <div className="flex justify-end">
-        <div className="bg-[var(--card)] rounded-xl px-5 py-3 border border-[var(--border)] shadow-sm flex items-center gap-4">
-          <span className="text-sm text-[var(--text-secondary)]">
-            {filteredOrders.length} {t('orders').toLowerCase()}
-          </span>
-          <span className="text-sm font-semibold text-primary">
-            {t('totalOrdersAmount')}: ₼{totalAmount.toLocaleString()}
-          </span>
+      {/* Total Summary — bottom right (admin only) */}
+      {isAdmin && (
+        <div className="flex justify-end">
+          <div className="bg-[var(--card)] rounded-xl px-5 py-3 border border-[var(--border)] shadow-sm flex items-center gap-4">
+            <span className="text-sm text-[var(--text-secondary)]">
+              {filteredOrders.length} {t('orders').toLowerCase()}
+            </span>
+            <span className="text-sm font-semibold text-primary">
+              {t('totalOrdersAmount')}: ₼{totalAmount.toLocaleString()}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* View Modal */}
       {viewingOrder && (
@@ -508,6 +521,7 @@ export default function Orders() {
                 <div><span className="text-[var(--text-secondary)]">{t('quantity')}:</span> <span className="font-medium">{viewingOrder.quantity}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('amount')}:</span> <span className="font-medium">₼{Number(viewingOrder.total_price).toLocaleString()}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('status')}:</span> <span className="font-medium">{statusLabel(viewingOrder.status)}</span></div>
+                <div><span className="text-[var(--text-secondary)]">{t('author')}:</span> <span className="font-medium">{userMap[viewingOrder.created_by] || '-'}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('deliveryDate')}:</span> <span className="font-medium">{viewingOrder.delivery_date || '-'}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('paymentType')}:</span> <span className="font-medium">{paymentTypeLabel(viewingOrder.payment_method)}</span></div>
                 <div><span className="text-[var(--text-secondary)]">{t('paymentMethod')}:</span> <span className="font-medium">{viewingOrder.payment_type === 'deposit' ? t('deposit') : t('fullPayment')}</span></div>
@@ -537,6 +551,16 @@ export default function Orders() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Author (read-only) */}
+              <div>
+                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('author')}</label>
+                <input
+                  value={editingOrder ? (userMap[editingOrder.created_by] || '-') : (userProfile?.name || '')}
+                  readOnly
+                  className={`${INPUT_CLASS} bg-gray-100 dark:bg-gray-800 cursor-not-allowed`}
+                />
+              </div>
 
               {/* SECTION: Customer Information */}
               <div>
@@ -621,6 +645,16 @@ export default function Orders() {
                   </div>
                 </div>
               </div>
+
+              {/* SECTION: Status (edit only) */}
+              {editingOrder && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-4 text-[var(--text-secondary)] uppercase tracking-wide">{t('status')}</h3>
+                  <select value={formStatus} onChange={(e) => setFormStatus(e.target.value)} className={INPUT_CLASS}>
+                    {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* SECTION: Payment */}
               <div>

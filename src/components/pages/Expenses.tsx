@@ -25,21 +25,12 @@ export default function Expenses() {
 
   // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [createdBy, setCreatedBy] = useState('');
+  const createdBy = userProfile?.name || '';
   const [category, setCategory] = useState('advertising');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
   useEffect(() => { fetchData(); }, []);
-
-  if (!userProfile || userProfile.role !== 'admin') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-2">
-        <p className="text-lg font-semibold">{t('accessDenied')}</p>
-        <p className="text-sm text-[var(--text-secondary)]">{t('noPermission')}</p>
-      </div>
-    );
-  }
 
   async function fetchData() {
     setLoading(true);
@@ -61,7 +52,6 @@ export default function Expenses() {
     });
     setAmount('');
     setNote('');
-    setCreatedBy('');
     fetchData();
   }
 
@@ -97,8 +87,8 @@ export default function Expenses() {
           </div>
           <div>
             <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('enteredBy')}</label>
-            <input value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} placeholder={t('name')}
-              className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
+            <input value={createdBy} readOnly
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-gray-100 dark:bg-gray-800 cursor-not-allowed outline-none" />
           </div>
           <div>
             <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('expenseType')}</label>
