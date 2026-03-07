@@ -171,7 +171,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     setAuthLoading(true);
     try {
-      await supabase.auth.signOut();
+      // Use 'local' scope to ensure local session is always cleared,
+      // even if the network request to revoke the remote session fails
+      await supabase.auth.signOut({ scope: 'local' });
     } catch {
       // Clear state even if signOut fails
     }
