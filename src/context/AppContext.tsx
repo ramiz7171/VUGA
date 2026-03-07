@@ -90,11 +90,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Safety timeout: stop loading after 5s no matter what
-    const timeout = setTimeout(() => setAuthLoading(false), 5000);
+    // Safety timeout: stop loading after 3s no matter what
+    const timeout = setTimeout(() => setAuthLoading(false), 3000);
+    let initialDone = false;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(timeout);
+      initialDone = true;
       if (session?.user) {
         setUser(session.user);
         fetchUserProfile(session.user.id);
@@ -103,18 +105,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }).catch(() => {
       clearTimeout(timeout);
+      initialDone = true;
       setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Skip INITIAL_SESSION event - getSession() handles the initial state
+        // Skip INITIAL_SESSION - getSession() handles it
         if (event === 'INITIAL_SESSION') return;
+
+        if (event === 'TOKEN_REFRESHED') return;
 
         if (session?.user) {
           setUser(session.user);
-          setAuthLoading(true);
-          await fetchUserProfile(session.user.id);
+          // Only show loading spinner if this is not the initial load
+          // (initial load is handled by getSession above)
+          if (initialDone) {
+            await fetchUserProfile(session.user.id);
+          }
         } else {
           setUser(null);
           setUserProfile(null);
@@ -150,9 +158,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    // On success, onAuthStateChange will set authLoading and fetch profile
-    return { error: error?.message || null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    // Immediately set user and fetch profile — don't wait for onAuthStateChange
+    if (data.user) {
+      setUser(data.user);
+      setAuthLoading(true);
+      await fetchUserProfile(data.user.id);
+    }
+    return { error: null };
   };
 
   const signUp = async (email: string, password: string, name: string) => {
@@ -165,18 +179,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    setAuthLoading(true);
-    try {
-      // Use 'local' scope to ensure local session is always cleared,
-      // even if the network request to revoke the remote session fails
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // Clear state even if signOut fails
-    }
+    // Clear state immediately for instant UI response
     setUser(null);
     setUserProfile(null);
     setCurrentPage('dashboard');
-    setAuthLoading(false);
+    // Fire sign-out in background — don't block the UI
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
   };
 
   const hasAccess = (page: string): boolean => {
