@@ -49,31 +49,49 @@ const DEFAULT_PAGE: Record<UserRole, string> = {
   user: 'orders',
 };
 
+function getInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  const saved = localStorage.getItem('vuga-lang') as Language | null;
+  if (saved === 'az' || saved === 'en') return saved;
+  // Detect browser language on first visit
+  const browserLang = navigator.language?.toLowerCase() || '';
+  return browserLang.startsWith('az') ? 'az' : 'en';
+}
+
+function getInitialDarkMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('vuga-theme') === 'dark';
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('az');
-  const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (data) {
-      const profile = data as UserProfile;
-      setUserProfile(profile);
-      setCurrentPage(DEFAULT_PAGE[profile.role] || 'orders');
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (data && !error) {
+        const profile = data as UserProfile;
+        setUserProfile(profile);
+        setCurrentPage(DEFAULT_PAGE[profile.role] || 'orders');
+      }
+    } catch {
+      // Profile fetch failed - will show auth page
     }
     setAuthLoading(false);
   }, []);
 
   useEffect(() => {
-    // Safety timeout: stop loading after 2s no matter what
-    const timeout = setTimeout(() => setAuthLoading(false), 2000);
+    // Safety timeout: stop loading after 5s no matter what
+    const timeout = setTimeout(() => setAuthLoading(false), 5000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(timeout);
@@ -89,9 +107,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        // Skip INITIAL_SESSION event - getSession() handles the initial state
+        if (event === 'INITIAL_SESSION') return;
+
         if (session?.user) {
           setUser(session.user);
+          setAuthLoading(true);
           await fetchUserProfile(session.user.id);
         } else {
           setUser(null);
@@ -108,14 +130,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchUserProfile]);
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('vuga-lang') as Language;
-    const savedTheme = localStorage.getItem('vuga-theme');
-    if (savedLang) setLanguage(savedLang);
-    if (savedTheme === 'dark') setDarkMode(true);
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('vuga-lang', language);
+    document.documentElement.lang = language;
   }, [language]);
 
   useEffect(() => {
@@ -135,6 +151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // On success, onAuthStateChange will set authLoading and fetch profile
     return { error: error?.message || null };
   };
 
@@ -148,14 +165,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
+    setAuthLoading(true);
     try {
-      await supabase.auth.signOut();
+      // Use 'local' scope to ensure local session is always cleared,
+      // even if the network request to revoke the remote session fails
+      await supabase.auth.signOut({ scope: 'local' });
     } catch {
       // Clear state even if signOut fails
     }
     setUser(null);
     setUserProfile(null);
     setCurrentPage('dashboard');
+    setAuthLoading(false);
   };
 
   const hasAccess = (page: string): boolean => {
