@@ -23,8 +23,8 @@ export default function SignIn({ onSwitchToSignUp }: SignInProps) {
     const { error: err } = await signIn(email, password);
     if (err) {
       setError(err);
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   return (
