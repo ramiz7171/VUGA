@@ -150,12 +150,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const signIn = async (email: string, password: string) => {
-    setAuthLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setAuthLoading(false);
-    }
-    // On success, onAuthStateChange will handle setting user/profile
+    // On success, onAuthStateChange will set authLoading and fetch profile
     return { error: error?.message || null };
   };
 
