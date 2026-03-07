@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { ROUTE_MAP } from '@/lib/routes';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -33,11 +36,13 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const {
-    t, currentPage, setCurrentPage,
-    darkMode, toggleDarkMode,
+    t, darkMode, toggleDarkMode,
     language, setLanguage,
     userProfile, signOut, hasAccess,
   } = useApp();
+
+  const pathname = usePathname();
+  const router = useRouter();
 
   const filteredMenuItems = menuItems.filter((item) => hasAccess(item.key));
 
@@ -45,9 +50,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     ? { admin: t('roleAdmin'), moderator: t('roleModerator'), user: t('roleUser') }[userProfile.role]
     : '';
 
-  const handleNav = (key: string) => {
-    setCurrentPage(key);
-    onClose();
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
   };
 
   return (
@@ -114,11 +119,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {/* Navigation Menu */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {filteredMenuItems.map((item) => {
-            const isActive = currentPage === item.key;
+            const path = ROUTE_MAP[item.key]?.path || '/dashboard';
+            const isActive = pathname === path;
             return (
-              <button
+              <Link
                 key={item.key}
-                onClick={() => handleNav(item.key)}
+                href={path}
+                onClick={onClose}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-accent text-primary'
@@ -127,7 +134,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               >
                 <item.icon size={20} />
                 {t(item.labelKey)}
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -135,7 +142,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {/* Sign Out — bottom */}
         <div className="px-3 pb-4">
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-all"
           >
             <LogOut size={18} />

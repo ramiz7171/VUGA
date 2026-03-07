@@ -43,7 +43,8 @@ export default function Expenses() {
 
   async function fetchData() {
     setLoading(true);
-    const { data } = await supabase.from('expenses').select('*').order('date', { ascending: false });
+    const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false });
+    if (error) { setTimeout(() => fetchData(), 2000); return; }
     setExpenses(data || []);
     setLoading(false);
   }

@@ -85,11 +85,12 @@ export default function OrderTracking() {
   const [saving, setSaving] = useState(false);
 
   const fetchOrders = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, customer:customers(name)')
       .in('status', ['not_started', 'started', 'finished'])
       .order('order_date', { ascending: true });
+    if (error) { setTimeout(() => fetchOrders(), 2000); return; }
     const mapped: Order[] = (data || []).map((row: OrderRaw) => ({
       id: row.id,
       order_number: row.order_number,

@@ -23,8 +23,6 @@ interface AppContextType {
   t: (key: TranslationKey) => string;
   darkMode: boolean;
   toggleDarkMode: () => void;
-  currentPage: string;
-  setCurrentPage: (page: string) => void;
   user: User | null;
   userProfile: UserProfile | null;
   authLoading: boolean;
@@ -40,12 +38,6 @@ const ACCESS_MAP: Record<UserRole, string[]> = {
   admin: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
   moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'settings'],
   user: ['orders', 'settings'],
-};
-
-const DEFAULT_PAGE: Record<UserRole, string> = {
-  admin: 'dashboard',
-  moderator: 'dashboard',
-  user: 'orders',
 };
 
 function getInitialLanguage(): Language {
@@ -65,7 +57,6 @@ function getInitialDarkMode(): boolean {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(getInitialLanguage);
   const [darkMode, setDarkMode] = useState(getInitialDarkMode);
-  const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -80,7 +71,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (data && !error) {
         const profile = data as UserProfile;
         setUserProfile(profile);
-        setCurrentPage(DEFAULT_PAGE[profile.role] || 'orders');
       }
     } catch {
       // Profile fetch failed - will show auth page
@@ -172,7 +162,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Clear state immediately for instant UI response
     setUser(null);
     setUserProfile(null);
-    setCurrentPage('dashboard');
     // Fire sign-out in background — don't block the UI
     supabase.auth.signOut({ scope: 'local' }).catch(() => {});
   };
@@ -190,7 +179,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         language, setLanguage, t, darkMode, toggleDarkMode,
-        currentPage, setCurrentPage,
         user, userProfile, authLoading,
         signIn, signOut: handleSignOut, hasAccess, refreshProfile,
       }}

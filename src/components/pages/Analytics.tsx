@@ -49,6 +49,7 @@ export default function Analytics() {
       supabase.from('expenses').select('date, amount, category'),
       supabase.from('customers').select('source'),
     ]);
+    if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchAnalytics(), 2000); return; }
     setOrders(ordersRes.data || []);
     setExpenses(expensesRes.data || []);
     setCustomers(customersRes.data || []);

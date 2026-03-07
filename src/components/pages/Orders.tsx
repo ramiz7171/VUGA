@@ -138,16 +138,18 @@ export default function Orders() {
 
   async function fetchOrders() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('*, customer:customers(*)')
       .order('order_date', { ascending: false });
+    if (error) { setTimeout(() => fetchOrders(), 2000); return; }
     setOrders(data || []);
     setLoading(false);
   }
 
   async function fetchCustomers() {
-    const { data } = await supabase.from('customers').select('*');
+    const { data, error } = await supabase.from('customers').select('*');
+    if (error) { setTimeout(() => fetchCustomers(), 2000); return; }
     setCustomers(data || []);
   }
 
@@ -351,15 +353,6 @@ export default function Orders() {
           {hasActiveFilters && <span className="bg-white/20 rounded-full px-1.5 text-xs">!</span>}
         </button>
 
-        {/* Total Summary */}
-        <div className="ml-auto flex items-center gap-4 text-sm">
-          <span className="text-[var(--text-secondary)]">
-            {filteredOrders.length} {t('orders').toLowerCase()}
-          </span>
-          <span className="font-semibold text-primary">
-            {t('totalOrdersAmount')}: ₼{totalAmount.toLocaleString()}
-          </span>
-        </div>
       </div>
 
       {/* Filters Panel */}
@@ -483,6 +476,18 @@ export default function Orders() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Total Summary — bottom right */}
+      <div className="flex justify-end">
+        <div className="bg-[var(--card)] rounded-xl px-5 py-3 border border-[var(--border)] shadow-sm flex items-center gap-4">
+          <span className="text-sm text-[var(--text-secondary)]">
+            {filteredOrders.length} {t('orders').toLowerCase()}
+          </span>
+          <span className="text-sm font-semibold text-primary">
+            {t('totalOrdersAmount')}: ₼{totalAmount.toLocaleString()}
+          </span>
+        </div>
       </div>
 
       {/* View Modal */}

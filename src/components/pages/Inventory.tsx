@@ -42,12 +42,9 @@ export default function Inventory() {
 
   async function fetchProducts() {
     setLoading(true);
-    try {
-      const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-      setProducts(data || []);
-    } catch {
-      setProducts([]);
-    }
+    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (error) { setTimeout(() => fetchProducts(), 2000); return; }
+    setProducts(data || []);
     setLoading(false);
   }
 
