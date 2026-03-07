@@ -3,7 +3,7 @@
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Wallet, TrendingDown } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Expense {
@@ -21,7 +21,6 @@ export default function Expenses() {
   const { t, userProfile } = useApp();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Form
@@ -44,12 +43,8 @@ export default function Expenses() {
 
   async function fetchData() {
     setLoading(true);
-    const [expRes, ordRes] = await Promise.all([
-      supabase.from('expenses').select('*').order('date', { ascending: false }),
-      supabase.from('orders').select('total_price'),
-    ]);
-    setExpenses(expRes.data || []);
-    setTotalRevenue((ordRes.data || []).reduce((s, o) => s + Number(o.total_price || 0), 0));
+    const { data } = await supabase.from('expenses').select('*').order('date', { ascending: false });
+    setExpenses(data || []);
     setLoading(false);
   }
 
@@ -74,9 +69,6 @@ export default function Expenses() {
     setDeleteId(null);
     fetchData();
   }
-
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const cashBalance = totalRevenue - totalExpenses;
 
   const categoryLabel = (cat: string) => {
     const map: Record<string, string> = {
@@ -175,28 +167,6 @@ export default function Expenses() {
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Balance Cards at Bottom */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-secondary)]">{t('cashBalance')}</p>
-              <p className={`text-2xl font-bold mt-1 ${cashBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>₼{cashBalance.toLocaleString()}</p>
-            </div>
-            <Wallet size={28} className="text-green-500" />
-          </div>
-        </div>
-        <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)] shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-secondary)]">{t('totalExpenses')}</p>
-              <p className="text-2xl font-bold mt-1 text-red-500">₼{totalExpenses.toLocaleString()}</p>
-            </div>
-            <TrendingDown size={28} className="text-red-500" />
-          </div>
-        </div>
       </div>
 
       {/* Delete Confirm Modal */}

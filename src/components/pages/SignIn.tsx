@@ -4,11 +4,7 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 
-interface SignInProps {
-  onSwitchToSignUp: () => void;
-}
-
-export default function SignIn({ onSwitchToSignUp }: SignInProps) {
+export default function SignIn() {
   const { t, signIn } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,12 +76,6 @@ export default function SignIn({ onSwitchToSignUp }: SignInProps) {
         </button>
       </form>
 
-      <p className="text-sm text-center mt-6 text-[var(--text-secondary)]">
-        {t('noAccount')}{' '}
-        <button onClick={onSwitchToSignUp} className="text-primary font-medium hover:underline">
-          {t('signUp')}
-        </button>
-      </p>
     </div>
   );
 }

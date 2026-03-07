@@ -4,13 +4,12 @@ import { useApp } from '@/context/AppContext';
 import {
   LayoutDashboard,
   ShoppingCart,
+  ClipboardList,
   Warehouse,
   Receipt,
   BarChart3,
   Users,
   Settings,
-  Sun,
-  Moon,
   Languages,
   LogOut,
   X,
@@ -19,6 +18,7 @@ import {
 const menuItems = [
   { key: 'dashboard', icon: LayoutDashboard, labelKey: 'dashboard' as const },
   { key: 'orders', icon: ShoppingCart, labelKey: 'orders' as const },
+  { key: 'orderTracking', icon: ClipboardList, labelKey: 'orderTracking' as const },
   { key: 'inventory', icon: Warehouse, labelKey: 'inventory' as const },
   { key: 'expenses', icon: Receipt, labelKey: 'expenses' as const },
   { key: 'analytics', icon: BarChart3, labelKey: 'analytics' as const },
@@ -75,7 +75,43 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Menu */}
+        {/* User Controls Section — under logo */}
+        {userProfile && (
+          <div className="px-3 py-3 border-b border-white/10 space-y-2">
+            {/* User info */}
+            <div className="flex items-center gap-3 px-3 py-1.5">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                {userProfile.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{userProfile.name}</p>
+                <p className="text-xs text-white/50 truncate">{roleLabel}</p>
+              </div>
+            </div>
+
+            {/* Language selector */}
+            <button
+              onClick={() => setLanguage(language === 'az' ? 'en' : 'az')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <Languages size={16} />
+              {language === 'az' ? 'English' : 'Azərbaycan'}
+            </button>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <span>{t('darkMode')}</span>
+              <div className={`w-9 h-5 rounded-full transition-colors relative ${darkMode ? 'bg-white/30' : 'bg-white/10'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Navigation Menu */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {filteredMenuItems.map((item) => {
             const isActive = currentPage === item.key;
@@ -96,39 +132,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* User Profile */}
-        {userProfile && (
-          <div className="px-3 py-3 border-t border-white/10">
-            <div className="flex items-center gap-3 px-4 py-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                {userProfile.name?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{userProfile.name}</p>
-                <p className="text-xs text-white/50 truncate">{roleLabel}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bottom controls */}
-        <div className="px-3 pb-4 space-y-1">
-          <button
-            onClick={() => setLanguage(language === 'az' ? 'en' : 'az')}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <Languages size={18} />
-            {language === 'az' ? 'English' : 'Azərbaycan'}
-          </button>
-
-          <button
-            onClick={toggleDarkMode}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-all"
-          >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            {darkMode ? t('lightMode') : t('darkMode')}
-          </button>
-
+        {/* Sign Out — bottom */}
+        <div className="px-3 pb-4">
           <button
             onClick={signOut}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-all"

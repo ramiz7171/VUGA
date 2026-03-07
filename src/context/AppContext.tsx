@@ -29,7 +29,6 @@ interface AppContextType {
   userProfile: UserProfile | null;
   authLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   hasAccess: (page: string) => boolean;
   refreshProfile: () => Promise<void>;
@@ -38,8 +37,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ACCESS_MAP: Record<UserRole, string[]> = {
-  admin: ['dashboard', 'orders', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
-  moderator: ['dashboard', 'orders', 'inventory', 'settings'],
+  admin: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
+  moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'settings'],
   user: ['orders', 'settings'],
 };
 
@@ -169,15 +168,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    return { error: error?.message || null };
-  };
-
   const handleSignOut = async () => {
     // Clear state immediately for instant UI response
     setUser(null);
@@ -202,7 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         language, setLanguage, t, darkMode, toggleDarkMode,
         currentPage, setCurrentPage,
         user, userProfile, authLoading,
-        signIn, signUp, signOut: handleSignOut, hasAccess, refreshProfile,
+        signIn, signOut: handleSignOut, hasAccess, refreshProfile,
       }}
     >
       {children}

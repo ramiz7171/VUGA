@@ -1,18 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import SignIn from './SignIn';
-import SignUp from './SignUp';
 import { Languages, Sun, Moon } from 'lucide-react';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const { language, setLanguage, darkMode, toggleDarkMode } = useApp();
 
   return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4 relative">
-      {/* Top controls */}
       <div className="fixed top-4 right-4 flex items-center gap-2">
         <button
           onClick={() => setLanguage(language === 'az' ? 'en' : 'az')}
@@ -30,16 +26,10 @@ export default function AuthPage() {
       </div>
 
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex items-center justify-center mb-8">
           <img src="/logo.png" alt="VUGA" className="h-12 w-auto invert dark:invert-0" />
         </div>
-
-        {mode === 'signin' ? (
-          <SignIn onSwitchToSignUp={() => setMode('signup')} />
-        ) : (
-          <SignUp onSwitchToSignIn={() => setMode('signin')} />
-        )}
+        <SignIn />
       </div>
     </div>
   );

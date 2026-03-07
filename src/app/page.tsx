@@ -9,6 +9,7 @@ import Expenses from '@/components/pages/Expenses';
 import Analytics from '@/components/pages/Analytics';
 import AuthPage from '@/components/pages/AuthPage';
 import UserManagement from '@/components/pages/UserManagement';
+import OrderTracking from '@/components/pages/OrderTracking';
 import Settings from '@/components/pages/Settings';
 import { useApp } from '@/context/AppContext';
 import { TranslationKey } from '@/lib/i18n';
@@ -17,6 +18,7 @@ import { Loader2, Menu } from 'lucide-react';
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
   orders: Orders,
+  orderTracking: OrderTracking,
   inventory: Inventory,
   expenses: Expenses,
   analytics: Analytics,
