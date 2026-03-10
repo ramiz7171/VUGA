@@ -97,6 +97,13 @@ export default function Orders() {
   // Edit status
   const [formStatus, setFormStatus] = useState('not_started');
 
+  // Order sources (dynamic)
+  const [orderSources, setOrderSources] = useState<{ name: string; value: string }[]>([
+    { name: 'Instagram', value: 'instagram' },
+    { name: 'Facebook', value: 'facebook' },
+    { name: 'Digər', value: 'other' },
+  ]);
+
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -105,6 +112,7 @@ export default function Orders() {
     fetchOrders();
     fetchCustomers();
     fetchUsers();
+    fetchOrderSources();
 
     // Real-time subscription for sync with Order Tracking board
     const channel = supabase
@@ -158,6 +166,13 @@ export default function Orders() {
     }
   }
 
+  async function fetchOrderSources() {
+    const { data } = await supabase.from('order_sources').select('name, value').order('created_at');
+    if (data && data.length > 0) {
+      setOrderSources(data);
+    }
+  }
+
   const hasActiveFilters = filterDateFrom || filterDateTo || filterOrderNumber || filterCustomerName || filterStatus || filterDeliveryFrom || filterDeliveryTo || filterAmountMin || filterAmountMax;
 
   function clearFilters() {
@@ -208,7 +223,7 @@ export default function Orders() {
     setCustomerName(''); setCustomerPhone('');
     setOrderDate(new Date().toISOString().split('T')[0]);
     setDeliveryDate(''); setAssignedTo('');
-    setProductName(''); setSource('instagram');
+    setProductName(''); setSource(orderSources[0]?.value || 'instagram');
     setQty(1); setAmount(0); setOrderNotes('');
     setPaymentType('cash'); setPaymentMethod('full');
     setFullPaymentAmount(0); setDepositAmount(0);
@@ -250,8 +265,9 @@ export default function Orders() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const isFullyPaid = paymentMethod === 'full' || remainingBalance === 0;
-    const autoStatus = isFullyPaid ? 'paid' : (editingOrder ? formStatus : 'not_started');
+    const isFullyPaid = paymentMethod === 'full' || (paymentMethod === 'deposit' && remainingBalance === 0);
+    const hasDebt = paymentMethod === 'deposit' && remainingBalance > 0;
+    const autoStatus = isFullyPaid ? 'paid' : (hasDebt && (editingOrder ? formStatus : 'not_started') === 'paid' ? 'finished' : (editingOrder ? formStatus : 'not_started'));
 
     const orderPayload = {
       product_type: productName,
@@ -319,6 +335,8 @@ export default function Orders() {
   };
 
   const sourceLabel = (s: string) => {
+    const found = orderSources.find(src => src.value === s);
+    if (found) return found.name;
     const map: Record<string, string> = {
       instagram: t('instagram'), facebook: t('facebook'), other: t('other'),
     };
@@ -422,15 +440,16 @@ export default function Orders() {
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('status')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('deliveryDate')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('amount')}</th>
+              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('debt')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('author')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="p-8 text-center text-[var(--text-secondary)]">{t('loading')}</td></tr>
+              <tr><td colSpan={9} className="p-8 text-center text-[var(--text-secondary)]">{t('loading')}</td></tr>
             ) : filteredOrders.length === 0 ? (
-              <tr><td colSpan={8} className="p-8 text-center text-[var(--text-secondary)]">
+              <tr><td colSpan={9} className="p-8 text-center text-[var(--text-secondary)]">
                 <div className="flex flex-col items-center gap-2">
                   <ShoppingCart size={40} className="text-[var(--text-secondary)]" />
                   {t('noData')}
@@ -443,12 +462,25 @@ export default function Orders() {
                   <td className="p-4 font-mono text-xs">#{order.order_number}</td>
                   <td className="p-4 font-medium">{order.customer?.name || '-'}</td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${STATUS_COLORS[order.status] || ''}`}>
-                      {statusLabel(order.status)}
-                    </span>
+                    {(() => {
+                      const hasDebt = order.payment_type === 'deposit' && Number(order.remaining_balance) > 0;
+                      const displayStatus = hasDebt && order.status === 'paid' ? 'finished' : order.status;
+                      return (
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${STATUS_COLORS[displayStatus] || ''}`}>
+                          {statusLabel(displayStatus)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="p-4 text-[var(--text-secondary)]">{order.delivery_date || '-'}</td>
                   <td className="p-4 font-medium">₼{Number(order.total_price).toLocaleString()}</td>
+                  <td className="p-4">
+                    {order.payment_type === 'deposit' && Number(order.remaining_balance) > 0 ? (
+                      <span className="text-red-500 font-medium">₼{Number(order.remaining_balance).toLocaleString()}</span>
+                    ) : (
+                      <span className="text-green-500 text-xs">{t('noDebt')}</span>
+                    )}
+                  </td>
                   <td className="p-4 text-sm text-[var(--text-secondary)]">{userMap[order.created_by] || '-'}</td>
                   <td className="p-4">
                     <div className="flex gap-1">
@@ -619,9 +651,9 @@ export default function Orders() {
                   <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('source')}</label>
                     <select value={source} onChange={(e) => setSource(e.target.value)} className={INPUT_CLASS}>
-                      <option value="instagram">{t('instagram')}</option>
-                      <option value="facebook">{t('facebook')}</option>
-                      <option value="other">{t('other')}</option>
+                      {orderSources.map((src) => (
+                        <option key={src.value} value={src.value}>{src.name}</option>
+                      ))}
                     </select>
                   </div>
 

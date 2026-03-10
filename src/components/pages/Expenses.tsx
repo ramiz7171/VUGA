@@ -15,13 +15,14 @@ interface Expense {
   date: string;
 }
 
-const CATEGORIES = ['advertising', 'salary', 'logistics', 'officeSupplies'] as const;
+const DEFAULT_CATEGORIES = ['advertising', 'salary', 'logistics', 'officeSupplies'];
 
 export default function Expenses() {
   const { t, userProfile } = useApp();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expenseTypes, setExpenseTypes] = useState<string[]>([]);
 
   // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -31,7 +32,16 @@ export default function Expenses() {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); fetchExpenseTypes(); }, []);
+
+  async function fetchExpenseTypes() {
+    const { data } = await supabase.from('expense_types').select('name').order('created_at');
+    if (data && data.length > 0) {
+      setExpenseTypes(data.map((d: { name: string }) => d.name));
+    } else {
+      setExpenseTypes(DEFAULT_CATEGORIES);
+    }
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -96,16 +106,14 @@ export default function Expenses() {
           </div>
           <div>
             <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('expenseType')}</label>
-            <input
-              value={customCategory}
-              onChange={(e) => { setCustomCategory(e.target.value); setCategory(''); }}
-              placeholder={t('expenseTypeCustom')}
-              list="expense-categories"
+            <select
+              value={customCategory || category}
+              onChange={(e) => { setCustomCategory(e.target.value); setCategory(e.target.value); }}
               className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20"
-            />
-            <datalist id="expense-categories">
-              {CATEGORIES.map((c) => <option key={c} value={categoryLabel(c)} />)}
-            </datalist>
+            >
+              <option value="">{t('expenseTypeCustom')}</option>
+              {expenseTypes.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+            </select>
           </div>
           <div>
             <label className="text-xs text-[var(--text-secondary)] mb-1 block">{t('amount')}</label>

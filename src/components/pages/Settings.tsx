@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
-import { User, Mail, Phone, Lock, Shield, Globe, Check, AlertCircle, LogOut } from 'lucide-react';
+import { User, Mail, Phone, Lock, Shield, Globe, Check, AlertCircle, LogOut, Plus, Trash2, Tag, MapPin } from 'lucide-react';
 
 export default function Settings() {
   const { t, userProfile, refreshProfile, signOut } = useApp();
@@ -31,6 +31,19 @@ export default function Settings() {
   // Security
   const [securityMsg, setSecurityMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Expense Types
+  const [expenseTypes, setExpenseTypes] = useState<{ id: string; name: string }[]>([]);
+  const [newExpenseType, setNewExpenseType] = useState('');
+  const [expenseTypeMsg, setExpenseTypeMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Order Sources
+  const [orderSources, setOrderSources] = useState<{ id: string; name: string; value: string }[]>([]);
+  const [newSourceName, setNewSourceName] = useState('');
+  const [newSourceValue, setNewSourceValue] = useState('');
+  const [orderSourceMsg, setOrderSourceMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const isAdmin = userProfile?.role === 'admin';
+
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.name || '');
@@ -40,6 +53,60 @@ export default function Settings() {
       setEmailNotifications(userProfile.email_notifications !== false);
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchExpenseTypes();
+      fetchOrderSources();
+    }
+  }, [isAdmin]);
+
+  async function fetchExpenseTypes() {
+    const { data } = await supabase.from('expense_types').select('*').order('created_at');
+    if (data) setExpenseTypes(data);
+  }
+
+  async function fetchOrderSources() {
+    const { data } = await supabase.from('order_sources').select('*').order('created_at');
+    if (data) setOrderSources(data);
+  }
+
+  async function handleAddExpenseType() {
+    if (!newExpenseType.trim()) return;
+    setExpenseTypeMsg(null);
+    const { error } = await supabase.from('expense_types').insert({ name: newExpenseType.trim() });
+    if (error) {
+      setExpenseTypeMsg({ type: 'error', text: error.message });
+      return;
+    }
+    setNewExpenseType('');
+    setExpenseTypeMsg({ type: 'success', text: t('profileUpdated') });
+    fetchExpenseTypes();
+  }
+
+  async function handleDeleteExpenseType(id: string) {
+    await supabase.from('expense_types').delete().eq('id', id);
+    fetchExpenseTypes();
+  }
+
+  async function handleAddOrderSource() {
+    if (!newSourceName.trim() || !newSourceValue.trim()) return;
+    setOrderSourceMsg(null);
+    const { error } = await supabase.from('order_sources').insert({ name: newSourceName.trim(), value: newSourceValue.trim().toLowerCase().replace(/\s+/g, '_') });
+    if (error) {
+      setOrderSourceMsg({ type: 'error', text: error.message });
+      return;
+    }
+    setNewSourceName('');
+    setNewSourceValue('');
+    setOrderSourceMsg({ type: 'success', text: t('profileUpdated') });
+    fetchOrderSources();
+  }
+
+  async function handleDeleteOrderSource(id: string) {
+    await supabase.from('order_sources').delete().eq('id', id);
+    fetchOrderSources();
+  }
 
   const handleSaveProfile = async () => {
     if (!userProfile) return;
@@ -338,6 +405,112 @@ export default function Settings() {
           {savingPrefs ? t('savingChanges') : t('saveChanges')}
         </button>
       </div>
+
+      {/* Expense Types Management (Admin only) */}
+      {isAdmin && (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag size={20} className="text-primary" />
+            <div>
+              <h2 className="text-lg font-semibold">{t('expenseTypes')}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{t('manageExpenseTypes')}</p>
+            </div>
+          </div>
+
+          <MessageBanner msg={expenseTypeMsg} />
+
+          <div className="flex gap-2">
+            <input
+              value={newExpenseType}
+              onChange={(e) => setNewExpenseType(e.target.value)}
+              placeholder={t('typeName')}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddExpenseType()}
+              className="flex-1 border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            <button
+              onClick={handleAddExpenseType}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition"
+            >
+              <Plus size={16} />
+              {t('addExpenseType')}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {expenseTypes.map((et) => (
+              <div key={et.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                <span className="text-sm">{et.name}</span>
+                <button
+                  onClick={() => handleDeleteExpenseType(et.id)}
+                  className="p-1.5 rounded hover:bg-red-100 text-red-500 transition"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {expenseTypes.length === 0 && (
+              <p className="text-sm text-[var(--text-secondary)] text-center py-4">{t('noData')}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Order Sources Management (Admin only) */}
+      {isAdmin && (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin size={20} className="text-primary" />
+            <div>
+              <h2 className="text-lg font-semibold">{t('orderSources')}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{t('manageOrderSources')}</p>
+            </div>
+          </div>
+
+          <MessageBanner msg={orderSourceMsg} />
+
+          <div className="flex gap-2">
+            <input
+              value={newSourceName}
+              onChange={(e) => { setNewSourceName(e.target.value); if (!newSourceValue || newSourceValue === newSourceName.trim().toLowerCase().replace(/\s+/g, '_')) setNewSourceValue(e.target.value.trim().toLowerCase().replace(/\s+/g, '_')); }}
+              placeholder={t('sourceName')}
+              className="flex-1 border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            <input
+              value={newSourceValue}
+              onChange={(e) => setNewSourceValue(e.target.value)}
+              placeholder={t('sourceValue')}
+              className="flex-1 border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            <button
+              onClick={handleAddOrderSource}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition"
+            >
+              <Plus size={16} />
+              {t('addSource')}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {orderSources.map((src) => (
+              <div key={src.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                <div>
+                  <span className="text-sm font-medium">{src.name}</span>
+                  <span className="text-xs text-[var(--text-secondary)] ml-2">({src.value})</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteOrderSource(src.id)}
+                  className="p-1.5 rounded hover:bg-red-100 text-red-500 transition"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {orderSources.length === 0 && (
+              <p className="text-sm text-[var(--text-secondary)] text-center py-4">{t('noData')}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

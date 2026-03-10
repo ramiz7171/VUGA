@@ -23,6 +23,7 @@ interface OrderRow {
   payment_method: string;
   status: string;
   created_by: string;
+  source: string;
 }
 
 interface ExpenseRow {
@@ -46,8 +47,8 @@ export default function Analytics() {
   const { t, userProfile } = useApp();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [customers, setCustomers] = useState<{ source: string }[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [orderSources, setOrderSources] = useState<{ name: string; value: string }[]>([]);
 
   // Kassa balance
   const [kassaBalance, setKassaBalance] = useState(0);
@@ -58,27 +59,26 @@ export default function Analytics() {
   const [balanceReason, setBalanceReason] = useState('');
   const [showLogs, setShowLogs] = useState(false);
 
-  // Day/Month/Year filter — default to current day, month and year
+  // Day/Month/Year filter — default to "all" (no specific date selected)
   const now = new Date();
-  const [filterDay, setFilterDay] = useState<string>(String(now.getDate()));
-  const [filterMonth, setFilterMonth] = useState<string>(String(now.getMonth()));
-  const [filterYear, setFilterYear] = useState<string>(String(now.getFullYear()));
+  const [filterDay, setFilterDay] = useState<string>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [filterYear, setFilterYear] = useState<string>('all');
 
   useEffect(() => { fetchAnalytics(); }, []);
 
   async function fetchAnalytics() {
-    const [ordersRes, expensesRes, customersRes, balanceRes, logsRes, usersRes] = await Promise.all([
-      supabase.from('orders').select('order_date, total_price, payment_method, status, created_by'),
+    const [ordersRes, expensesRes, balanceRes, logsRes, usersRes, sourcesRes] = await Promise.all([
+      supabase.from('orders').select('order_date, total_price, payment_method, status, created_by, source'),
       supabase.from('expenses').select('date, amount, category'),
-      supabase.from('customers').select('source'),
       supabase.from('kassa_balance').select('*').limit(1).single(),
       supabase.from('kassa_balance_logs').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('users').select('id, name'),
+      supabase.from('order_sources').select('name, value').order('created_at'),
     ]);
     if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchAnalytics(), 2000); return; }
     setOrders(ordersRes.data || []);
     setExpenses(expensesRes.data || []);
-    setCustomers(customersRes.data || []);
     if (balanceRes.data) {
       setKassaBalance(Number(balanceRes.data.balance));
       setKassaId(balanceRes.data.id);
@@ -88,6 +88,9 @@ export default function Analytics() {
       const map: Record<string, string> = {};
       usersRes.data.forEach((u: { id: string; name: string }) => { map[u.id] = u.name; });
       setUserMap(map);
+    }
+    if (sourcesRes.data && sourcesRes.data.length > 0) {
+      setOrderSources(sourcesRes.data);
     }
   }
 
@@ -121,6 +124,8 @@ export default function Analytics() {
     return map[s] || s;
   };
   const sourceTranslate = (s: string) => {
+    const found = orderSources.find(src => src.value === s);
+    if (found) return found.name;
     const map: Record<string, string> = { instagram: t('instagram'), facebook: t('facebook'), other: t('other'), referral: t('referral') };
     return map[s] || s;
   };
@@ -179,14 +184,14 @@ export default function Analytics() {
     return result;
   }, [orders, expenses, filterMonth, filterYear]);
 
-  // 3. Yearly Sales by months (order count per month for selected year)
+  // 3. Yearly Sales by months (total revenue per month for selected year)
   const yearlySalesByMonths = useMemo(() => {
     const yr = filterYear !== 'all' ? Number(filterYear) : now.getFullYear();
     const map = new Map<number, number>();
     orders.forEach(o => {
       const d = new Date(o.order_date);
       if (d.getFullYear() === yr) {
-        map.set(d.getMonth(), (map.get(d.getMonth()) || 0) + 1);
+        map.set(d.getMonth(), (map.get(d.getMonth()) || 0) + Number(o.total_price || 0));
       }
     });
     return MONTH_KEYS.map((key, i) => ({ month: t(key), sales: map.get(i) || 0 }));
@@ -217,15 +222,15 @@ export default function Analytics() {
 
   // ---- PIE CHART DATA (with translations) ----
 
-  // Source Distribution
+  // Source Distribution (from orders for consistency with Orders page)
   const sourceDistribution = useMemo(() => {
     const map = new Map<string, number>();
-    customers.forEach(c => {
-      const src = c.source || 'other';
+    filteredOrders.forEach(o => {
+      const src = o.source || 'other';
       map.set(src, (map.get(src) || 0) + 1);
     });
     return Array.from(map.entries()).map(([name, value]) => ({ name: sourceTranslate(name), value }));
-  }, [customers, t]);
+  }, [filteredOrders, orderSources, t]);
 
   // Expense Categories
   const expenseCategoriesData = useMemo(() => {
@@ -478,7 +483,7 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="month" stroke="var(--text-secondary)" fontSize={11} />
               <YAxis stroke="var(--text-secondary)" fontSize={12} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => [`₼${Number(value).toLocaleString()}`]} />
               <Bar dataKey="sales" fill="#6366f1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

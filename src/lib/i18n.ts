@@ -318,6 +318,19 @@ export const translations = {
     changedBy: 'Dəyişdirən',
     reason: 'Səbəb',
     balanceUpdated: 'Balans yeniləndi',
+
+    // Settings — Expense Types & Order Sources management
+    expenseTypes: 'Xərc Növləri',
+    orderSources: 'Sifariş Mənbələri',
+    addExpenseType: 'Xərc Növü Əlavə Et',
+    addSource: 'Mənbə Əlavə Et',
+    typeName: 'Növ Adı',
+    sourceName: 'Mənbə Adı',
+    sourceValue: 'Mənbə Dəyəri',
+    manageExpenseTypes: 'Xərc növlərini idarə edin',
+    manageOrderSources: 'Sifariş mənbələrini idarə edin',
+    debt: 'Borclar',
+    noDebt: 'Borc yoxdur',
   },
   en: {
     // Sidebar
@@ -636,6 +649,19 @@ export const translations = {
     changedBy: 'Changed By',
     reason: 'Reason',
     balanceUpdated: 'Balance updated',
+
+    // Settings — Expense Types & Order Sources management
+    expenseTypes: 'Expense Types',
+    orderSources: 'Order Sources',
+    addExpenseType: 'Add Expense Type',
+    addSource: 'Add Source',
+    typeName: 'Type Name',
+    sourceName: 'Source Name',
+    sourceValue: 'Source Value',
+    manageExpenseTypes: 'Manage expense types',
+    manageOrderSources: 'Manage order sources',
+    debt: 'Remaining Debt',
+    noDebt: 'No debt',
   },
 } as const;
 

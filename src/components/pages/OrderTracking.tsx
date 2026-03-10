@@ -34,11 +34,7 @@ interface Order {
   customerName: string;
 }
 
-const COLUMNS = [
-  { id: 'not_started', title: 'Not Started' },
-  { id: 'started', title: 'Started' },
-  { id: 'finished', title: 'Finished' },
-] as const;
+const COLUMN_IDS = ['not_started', 'started', 'finished'] as const;
 
 const STATUSES = ['not_started', 'started', 'finished', 'paid'] as const;
 
@@ -56,10 +52,10 @@ function getDeadlineInfo(deliveryDate: string | null): { border: string; badge: 
   now.setHours(0, 0, 0, 0);
   const deadline = new Date(deliveryDate);
   const diffDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return { border: 'border-l-red-900', badge: 'bg-red-900 text-white', badgeText: 'Overdue', label: `${Math.abs(diffDays)}d overdue` };
-  if (diffDays <= 1) return { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', badgeText: 'Urgent', label: diffDays === 0 ? 'Today' : '1d left' };
-  if (diffDays <= 3) return { border: 'border-l-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', badgeText: 'Warning', label: `${diffDays}d left` };
-  return { border: 'border-l-green-500', badge: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300', badgeText: 'Safe', label: `${diffDays}d left` };
+  if (diffDays < 0) return { border: 'border-l-red-900', badge: 'bg-red-900 text-white', badgeText: 'Gecikmiş', label: `${Math.abs(diffDays)} gün gecikmiş` };
+  if (diffDays <= 1) return { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', badgeText: 'Təcili', label: diffDays === 0 ? 'Bu gün' : '1 gün qalıb' };
+  if (diffDays <= 3) return { border: 'border-l-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', badgeText: 'Xəbərdarlıq', label: `${diffDays} gün qalıb` };
+  return { border: 'border-l-green-500', badge: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300', badgeText: 'Təhlükəsiz', label: `${diffDays} gün qalıb` };
 }
 
 function formatDate(dateStr: string | null): string {
@@ -208,6 +204,8 @@ export default function OrderTracking() {
     };
     return map[s] || s;
   };
+
+  const COLUMNS = COLUMN_IDS.map(id => ({ id, title: statusLabel(id) }));
 
   const getColumnOrders = (columnId: string) => orders.filter(o => o.status === columnId);
 
