@@ -23,6 +23,7 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseTypes, setExpenseTypes] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   // Form
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -35,39 +36,53 @@ export default function Expenses() {
   useEffect(() => { fetchData(); fetchExpenseTypes(); }, []);
 
   async function fetchExpenseTypes() {
-    const { data } = await supabase.from('expense_types').select('name').order('created_at');
-    if (data && data.length > 0) {
-      setExpenseTypes(data.map((d: { name: string }) => d.name));
-    } else {
+    try {
+      const { data } = await supabase.from('expense_types').select('name').order('created_at');
+      if (data && data.length > 0) {
+        setExpenseTypes(data.map((d: { name: string }) => d.name));
+      } else {
+        setExpenseTypes(DEFAULT_CATEGORIES);
+      }
+    } catch {
+      // Table may not exist yet — use defaults
       setExpenseTypes(DEFAULT_CATEGORIES);
     }
   }
 
   async function fetchData() {
     setLoading(true);
-    const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false });
-    if (error) { setTimeout(() => fetchData(), 2000); return; }
-    setExpenses(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false });
+      if (error) { setTimeout(() => fetchData(), 2000); return; }
+      setExpenses(data || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!amount) return;
+    if (!amount || submitting) return;
     const finalCategory = customCategory.trim() || category;
     if (!finalCategory) return;
-    await supabase.from('expenses').insert({
-      date,
-      created_by: createdBy,
-      category: finalCategory,
-      amount: Number(amount),
-      note,
-    });
-    setAmount('');
-    setNote('');
-    setCategory('');
-    setCustomCategory('');
-    fetchData();
+    setSubmitting(true);
+
+    try {
+      await supabase.from('expenses').insert({
+        date,
+        created_by: createdBy,
+        category: finalCategory,
+        amount: Number(amount),
+        note,
+      });
+      setAmount('');
+      setNote('');
+      setCategory('');
+      setCustomCategory('');
+      fetchData();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -125,10 +140,10 @@ export default function Expenses() {
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('description')}
               className="w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
-          <button type="submit"
-            className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition">
+          <button type="submit" disabled={submitting}
+            className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50">
             <Plus size={18} />
-            {t('addExpense')}
+            {submitting ? t('loading') : t('addExpense')}
           </button>
         </form>
       </div>

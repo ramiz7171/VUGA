@@ -20,6 +20,7 @@ interface StatCard {
 
 export default function Dashboard() {
   const { t, userProfile } = useApp();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ revenue: 0, expenses: 0, orders: 0, products: 0 });
   const [dailySales, setDailySales] = useState<{ date: string; total: number }[]>([]);
   const [monthlySales, setMonthlySales] = useState<{ month: string; total: number }[]>([]);
@@ -43,14 +44,16 @@ export default function Dashboard() {
   }
 
   async function fetchData() {
-    const [ordersRes, expensesRes, productsRes, customersRes] = await Promise.all([
-      supabase.from('orders').select('*'),
-      supabase.from('expenses').select('*'),
-      supabase.from('products').select('id'),
-      supabase.from('customers').select('source'),
-    ]);
+    setLoading(true);
+    try {
+      const [ordersRes, expensesRes, productsRes, customersRes] = await Promise.all([
+        supabase.from('orders').select('*'),
+        supabase.from('expenses').select('*'),
+        supabase.from('products').select('id'),
+        supabase.from('customers').select('source'),
+      ]);
 
-    if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchData(), 2000); return; }
+      if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchData(), 2000); return; }
 
     const orders = ordersRes.data || [];
     const expenses = expensesRes.data || [];
@@ -134,6 +137,9 @@ export default function Dashboard() {
       statusMap.set(o.status, (statusMap.get(o.status) || 0) + 1);
     });
     setOrderStatusDist(Array.from(statusMap.entries()).map(([name, value]) => ({ name, value })));
+    } finally {
+      setLoading(false);
+    }
   }
 
   const statCards: StatCard[] = [
@@ -142,6 +148,14 @@ export default function Dashboard() {
     { label: t('totalOrders'), value: stats.orders.toString(), icon: ShoppingCart, color: 'text-blue-500' },
     { label: t('totalProducts'), value: stats.products.toString(), icon: Package, color: 'text-purple-500' },
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64 text-[var(--text-secondary)]">{t('loading')}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

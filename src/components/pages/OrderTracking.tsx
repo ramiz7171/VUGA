@@ -84,27 +84,30 @@ export default function OrderTracking() {
   const [saving, setSaving] = useState(false);
 
   const fetchOrders = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, created_by, customer:customers(name)')
-      .in('status', ['not_started', 'started', 'finished'])
-      .order('order_date', { ascending: true });
-    if (error) { setTimeout(() => fetchOrders(), 2000); return; }
-    const mapped: Order[] = (data || []).map((row: OrderRaw) => ({
-      id: row.id,
-      order_number: row.order_number,
-      product_type: row.product_type || '',
-      assigned_to: row.assigned_to || '',
-      delivery_date: row.delivery_date || '',
-      order_date: row.order_date || '',
-      notes: row.notes || '',
-      status: row.status,
-      customer_id: row.customer_id || '',
-      created_by: row.created_by || '',
-      customerName: Array.isArray(row.customer) ? row.customer[0]?.name || '-' : row.customer?.name || '-',
-    }));
-    setOrders(mapped);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, created_by, customer:customers(name)')
+        .in('status', ['not_started', 'started', 'finished'])
+        .order('order_date', { ascending: true });
+      if (error) { setTimeout(() => fetchOrders(), 2000); return; }
+      const mapped: Order[] = (data || []).map((row: OrderRaw) => ({
+        id: row.id,
+        order_number: row.order_number,
+        product_type: row.product_type || '',
+        assigned_to: row.assigned_to || '',
+        delivery_date: row.delivery_date || '',
+        order_date: row.order_date || '',
+        notes: row.notes || '',
+        status: row.status,
+        customer_id: row.customer_id || '',
+        created_by: row.created_by || '',
+        customerName: Array.isArray(row.customer) ? row.customer[0]?.name || '-' : row.customer?.name || '-',
+      }));
+      setOrders(mapped);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   async function fetchUsers() {

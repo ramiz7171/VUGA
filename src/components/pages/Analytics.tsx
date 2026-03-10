@@ -65,32 +65,39 @@ export default function Analytics() {
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<string>('all');
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => { fetchAnalytics(); }, []);
 
   async function fetchAnalytics() {
-    const [ordersRes, expensesRes, balanceRes, logsRes, usersRes, sourcesRes] = await Promise.all([
-      supabase.from('orders').select('order_date, total_price, payment_method, status, created_by, source'),
-      supabase.from('expenses').select('date, amount, category'),
-      supabase.from('kassa_balance').select('*').limit(1).single(),
-      supabase.from('kassa_balance_logs').select('*').order('created_at', { ascending: false }).limit(20),
-      supabase.from('users').select('id, name'),
-      supabase.from('order_sources').select('name, value').order('created_at'),
-    ]);
-    if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchAnalytics(), 2000); return; }
-    setOrders(ordersRes.data || []);
-    setExpenses(expensesRes.data || []);
-    if (balanceRes.data) {
-      setKassaBalance(Number(balanceRes.data.balance));
-      setKassaId(balanceRes.data.id);
-    }
-    setBalanceLogs(logsRes.data || []);
-    if (usersRes.data) {
-      const map: Record<string, string> = {};
-      usersRes.data.forEach((u: { id: string; name: string }) => { map[u.id] = u.name; });
-      setUserMap(map);
-    }
-    if (sourcesRes.data && sourcesRes.data.length > 0) {
-      setOrderSources(sourcesRes.data);
+    setLoading(true);
+    try {
+      const [ordersRes, expensesRes, balanceRes, logsRes, usersRes, sourcesRes] = await Promise.all([
+        supabase.from('orders').select('order_date, total_price, payment_method, status, created_by, source'),
+        supabase.from('expenses').select('date, amount, category'),
+        supabase.from('kassa_balance').select('*').limit(1).single(),
+        supabase.from('kassa_balance_logs').select('*').order('created_at', { ascending: false }).limit(20),
+        supabase.from('users').select('id, name'),
+        supabase.from('order_sources').select('name, value').order('created_at'),
+      ]);
+      if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchAnalytics(), 2000); return; }
+      setOrders(ordersRes.data || []);
+      setExpenses(expensesRes.data || []);
+      if (balanceRes.data) {
+        setKassaBalance(Number(balanceRes.data.balance));
+        setKassaId(balanceRes.data.id);
+      }
+      setBalanceLogs(logsRes.data || []);
+      if (usersRes.data) {
+        const map: Record<string, string> = {};
+        usersRes.data.forEach((u: { id: string; name: string }) => { map[u.id] = u.name; });
+        setUserMap(map);
+      }
+      if (sourcesRes.data && sourcesRes.data.length > 0) {
+        setOrderSources(sourcesRes.data);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -320,6 +327,15 @@ export default function Analytics() {
 
   const SELECT_CLASS = 'border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20';
   const TOOLTIP_STYLE = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">{t('analytics')}</h1>
+        <div className="flex items-center justify-center h-64 text-[var(--text-secondary)]">{t('loading')}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

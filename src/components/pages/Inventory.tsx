@@ -22,6 +22,7 @@ export default function Inventory() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // Form
   const [name, setName] = useState('');
@@ -42,10 +43,13 @@ export default function Inventory() {
 
   async function fetchProducts() {
     setLoading(true);
-    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (error) { setTimeout(() => fetchProducts(), 2000); return; }
-    setProducts(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (error) { setTimeout(() => fetchProducts(), 2000); return; }
+      setProducts(data || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function resetForm() {
@@ -63,22 +67,29 @@ export default function Inventory() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = {
-      name,
-      stock_quantity: stockQty,
-      color,
-      selling_price: productValue,
-      updated_at: new Date().toISOString(),
-    };
+    if (submitting) return;
+    setSubmitting(true);
 
-    if (editing) {
-      await supabase.from('products').update(payload).eq('id', editing.id);
-    } else {
-      await supabase.from('products').insert(payload);
+    try {
+      const payload = {
+        name,
+        stock_quantity: stockQty,
+        color,
+        selling_price: productValue,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (editing) {
+        await supabase.from('products').update(payload).eq('id', editing.id);
+      } else {
+        await supabase.from('products').insert(payload);
+      }
+      resetForm();
+      setShowForm(false);
+      fetchProducts();
+    } finally {
+      setSubmitting(false);
     }
-    resetForm();
-    setShowForm(false);
-    fetchProducts();
   }
 
   async function handleDelete(id: string) {
@@ -183,8 +194,8 @@ export default function Inventory() {
               <div className="flex gap-3 justify-end pt-3">
                 <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
                   className="px-4 py-2.5 rounded-lg text-sm border border-[var(--border)] hover:bg-accent transition">{t('cancel')}</button>
-                <button type="submit"
-                  className="px-6 py-2.5 rounded-lg text-sm bg-primary text-white font-medium hover:opacity-90 transition">{editing ? t('save') : t('create')}</button>
+                <button type="submit" disabled={submitting}
+                  className="px-6 py-2.5 rounded-lg text-sm bg-primary text-white font-medium hover:opacity-90 transition disabled:opacity-50">{submitting ? t('loading') : editing ? t('save') : t('create')}</button>
               </div>
             </form>
           </div>

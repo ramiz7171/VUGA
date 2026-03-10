@@ -58,6 +58,7 @@ export default function Orders() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -142,19 +143,26 @@ export default function Orders() {
 
   async function fetchOrders() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, customer:customers(*)')
-      .order('order_date', { ascending: false });
-    if (error) { setTimeout(() => fetchOrders(), 2000); return; }
-    setOrders(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, customer:customers(*)')
+        .order('order_date', { ascending: false });
+      if (error) { setTimeout(() => fetchOrders(), 2000); return; }
+      setOrders(data || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function fetchCustomers() {
-    const { data, error } = await supabase.from('customers').select('*');
-    if (error) { setTimeout(() => fetchCustomers(), 2000); return; }
-    setCustomers(data || []);
+    try {
+      const { data, error } = await supabase.from('customers').select('*');
+      if (error) { setTimeout(() => fetchCustomers(), 2000); return; }
+      setCustomers(data || []);
+    } catch {
+      setTimeout(() => fetchCustomers(), 2000);
+    }
   }
 
   async function fetchUsers() {
@@ -167,9 +175,13 @@ export default function Orders() {
   }
 
   async function fetchOrderSources() {
-    const { data } = await supabase.from('order_sources').select('name, value').order('created_at');
-    if (data && data.length > 0) {
-      setOrderSources(data);
+    try {
+      const { data } = await supabase.from('order_sources').select('name, value').order('created_at');
+      if (data && data.length > 0) {
+        setOrderSources(data);
+      }
+    } catch {
+      // Table may not exist yet — use defaults
     }
   }
 
@@ -264,57 +276,63 @@ export default function Orders() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
 
-    const isFullyPaid = paymentMethod === 'full' || (paymentMethod === 'deposit' && remainingBalance === 0);
-    const hasDebt = paymentMethod === 'deposit' && remainingBalance > 0;
-    const autoStatus = isFullyPaid ? 'paid' : (hasDebt && (editingOrder ? formStatus : 'not_started') === 'paid' ? 'finished' : (editingOrder ? formStatus : 'not_started'));
+    try {
+      const isFullyPaid = paymentMethod === 'full' || (paymentMethod === 'deposit' && remainingBalance === 0);
+      const hasDebt = paymentMethod === 'deposit' && remainingBalance > 0;
+      const autoStatus = isFullyPaid ? 'paid' : (hasDebt && (editingOrder ? formStatus : 'not_started') === 'paid' ? 'finished' : (editingOrder ? formStatus : 'not_started'));
 
-    const orderPayload = {
-      product_type: productName,
-      quantity: qty,
-      total_price: amount,
-      payment_method: paymentType,
-      payment_type: paymentMethod,
-      deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
-      remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
-      payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
-      status: autoStatus,
-      payment_status: isFullyPaid ? 'paid' : 'partially_paid',
-      notes: orderNotes,
-      source,
-      delivery_date: deliveryDate || null,
-      assigned_to: assignedTo,
-    };
+      const orderPayload = {
+        product_type: productName,
+        quantity: qty,
+        total_price: amount,
+        payment_method: paymentType,
+        payment_type: paymentMethod,
+        deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
+        remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
+        payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
+        status: autoStatus,
+        payment_status: isFullyPaid ? 'paid' : 'partially_paid',
+        notes: orderNotes,
+        source,
+        delivery_date: deliveryDate || null,
+        assigned_to: assignedTo,
+      };
 
-    if (editingOrder) {
-      await supabase.from('orders').update(orderPayload).eq('id', editingOrder.id);
-      if (editingOrder.customer_id) {
-        await supabase.from('customers').update({ name: customerName, phone: customerPhone }).eq('id', editingOrder.customer_id);
-      }
-    } else {
-      let customerId: string | null = null;
-      const existing = customers.find((c) => c.name === customerName && c.phone === customerPhone);
-      if (existing) {
-        customerId = existing.id;
+      if (editingOrder) {
+        await supabase.from('orders').update(orderPayload).eq('id', editingOrder.id);
+        if (editingOrder.customer_id) {
+          await supabase.from('customers').update({ name: customerName, phone: customerPhone }).eq('id', editingOrder.customer_id);
+        }
       } else {
-        const { data: newCust } = await supabase.from('customers').insert({ name: customerName, phone: customerPhone, source }).select().single();
-        if (newCust) customerId = newCust.id;
+        let customerId: string | null = null;
+        const existing = customers.find((c) => c.name === customerName && c.phone === customerPhone);
+        if (existing) {
+          customerId = existing.id;
+        } else {
+          const { data: newCust } = await supabase.from('customers').insert({ name: customerName, phone: customerPhone, source }).select().single();
+          if (newCust) customerId = newCust.id;
+        }
+
+        if (customerId) {
+          await supabase.from('orders').insert({
+            ...orderPayload,
+            customer_id: customerId,
+            order_date: orderDate,
+            created_by: user?.id,
+          });
+        }
       }
 
-      if (customerId) {
-        await supabase.from('orders').insert({
-          ...orderPayload,
-          customer_id: customerId,
-          order_date: orderDate,
-          created_by: user?.id,
-        });
-      }
+      resetForm();
+      setShowForm(false);
+      fetchCustomers();
+      // fetchOrders not needed — realtime subscription handles it
+    } finally {
+      setSubmitting(false);
     }
-
-    resetForm();
-    setShowForm(false);
-    fetchOrders();
-    fetchCustomers();
   }
 
   async function handleDelete(id: string) {
@@ -753,9 +771,9 @@ export default function Orders() {
                   className="px-5 py-2.5 rounded-lg text-sm border border-[var(--border)] hover:bg-accent transition font-medium">
                   {t('cancel')}
                 </button>
-                <button type="submit"
-                  className="px-6 py-2.5 rounded-lg text-sm bg-primary text-white font-medium hover:opacity-90 transition">
-                  {editingOrder ? t('save') : t('createOrder')}
+                <button type="submit" disabled={submitting}
+                  className="px-6 py-2.5 rounded-lg text-sm bg-primary text-white font-medium hover:opacity-90 transition disabled:opacity-50">
+                  {submitting ? t('loading') : editingOrder ? t('save') : t('createOrder')}
                 </button>
               </div>
             </form>
