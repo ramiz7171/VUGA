@@ -90,7 +90,7 @@ export default function OrderTracking() {
         .select('id, order_number, product_type, assigned_to, delivery_date, order_date, notes, status, customer_id, created_by, customer:customers(name)')
         .in('status', ['not_started', 'started', 'finished'])
         .order('order_date', { ascending: true });
-      if (error) { setTimeout(() => fetchOrders(), 2000); return; }
+      if (error) { setLoading(false); return; }
       const mapped: Order[] = (data || []).map((row: OrderRaw) => ({
         id: row.id,
         order_number: row.order_number,

@@ -80,7 +80,7 @@ export default function Analytics() {
         supabase.from('users').select('id, name'),
         supabase.from('order_sources').select('name, value').order('created_at'),
       ]);
-      if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchAnalytics(), 2000); return; }
+      if (ordersRes.error || expensesRes.error) return;
       setOrders(ordersRes.data || []);
       setExpenses(expensesRes.data || []);
       if (balanceRes.data) {

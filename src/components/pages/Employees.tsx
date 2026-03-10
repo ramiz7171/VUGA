@@ -42,7 +42,7 @@ export default function Employees() {
       supabase.from('orders').select('order_date, total_price, created_by'),
       supabase.from('users').select('id, name'),
     ]);
-    if (ordersRes.error) { setTimeout(() => fetchData(), 2000); return; }
+    if (ordersRes.error) return;
     setOrders(ordersRes.data || []);
     if (usersRes.data) {
       const map: Record<string, string> = {};

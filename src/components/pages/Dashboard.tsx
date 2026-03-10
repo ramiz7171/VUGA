@@ -53,7 +53,7 @@ export default function Dashboard() {
         supabase.from('customers').select('source'),
       ]);
 
-      if (ordersRes.error || expensesRes.error) { setTimeout(() => fetchData(), 2000); return; }
+      if (ordersRes.error || expensesRes.error) return;
 
     const orders = ordersRes.data || [];
     const expenses = expensesRes.data || [];

@@ -84,16 +84,16 @@ export default function Orders() {
   const [productName, setProductName] = useState('');
   const [source, setSource] = useState('instagram');
   const [qty, setQty] = useState(1);
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
 
   // Form state — Payment
   const [paymentType, setPaymentType] = useState('cash');
   const [paymentMethod, setPaymentMethod] = useState('full');
-  const [fullPaymentAmount, setFullPaymentAmount] = useState(0);
-  const [depositAmount, setDepositAmount] = useState(0);
+  const [fullPaymentAmount, setFullPaymentAmount] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
   const [remainingPaymentType, setRemainingPaymentType] = useState('cash');
-  const [remainingBalance, setRemainingBalance] = useState(0);
+  const [remainingBalance, setRemainingBalance] = useState('');
 
   // Edit status
   const [formStatus, setFormStatus] = useState('not_started');
@@ -130,7 +130,8 @@ export default function Orders() {
 
   useEffect(() => {
     if (paymentMethod === 'deposit') {
-      setRemainingBalance(Math.max(0, amount - depositAmount));
+      const rem = Math.max(0, (Number(amount) || 0) - (Number(depositAmount) || 0));
+      setRemainingBalance(String(rem));
     }
   }, [amount, depositAmount, paymentMethod]);
 
@@ -148,8 +149,7 @@ export default function Orders() {
         .from('orders')
         .select('*, customer:customers(*)')
         .order('order_date', { ascending: false });
-      if (error) { setTimeout(() => fetchOrders(), 2000); return; }
-      setOrders(data || []);
+      if (!error) setOrders(data || []);
     } finally {
       setLoading(false);
     }
@@ -158,10 +158,9 @@ export default function Orders() {
   async function fetchCustomers() {
     try {
       const { data, error } = await supabase.from('customers').select('*');
-      if (error) { setTimeout(() => fetchCustomers(), 2000); return; }
-      setCustomers(data || []);
+      if (!error) setCustomers(data || []);
     } catch {
-      setTimeout(() => fetchCustomers(), 2000);
+      // ignore
     }
   }
 
@@ -236,10 +235,10 @@ export default function Orders() {
     setOrderDate(new Date().toISOString().split('T')[0]);
     setDeliveryDate(''); setAssignedTo('');
     setProductName(''); setSource(orderSources[0]?.value || 'instagram');
-    setQty(1); setAmount(0); setOrderNotes('');
+    setQty(1); setAmount(''); setOrderNotes('');
     setPaymentType('cash'); setPaymentMethod('full');
-    setFullPaymentAmount(0); setDepositAmount(0);
-    setRemainingPaymentType('cash'); setRemainingBalance(0);
+    setFullPaymentAmount(''); setDepositAmount('');
+    setRemainingPaymentType('cash'); setRemainingBalance('');
     setEditingOrder(null); setCustomerSearch('');
     setShowCustomerDropdown(false); setFormStatus('not_started');
   }
@@ -262,14 +261,14 @@ export default function Orders() {
     setProductName(order.product_type || '');
     setSource(order.source || 'other');
     setQty(order.quantity);
-    setAmount(Number(order.total_price));
+    setAmount(String(Number(order.total_price)));
     setOrderNotes(order.notes || '');
     setPaymentType(order.payment_method || 'cash');
     setPaymentMethod(order.payment_type || 'full');
-    setFullPaymentAmount(order.payment_type === 'full' ? Number(order.total_price) : 0);
-    setDepositAmount(Number(order.deposit_amount || 0));
+    setFullPaymentAmount(order.payment_type === 'full' ? String(Number(order.total_price)) : '');
+    setDepositAmount(String(Number(order.deposit_amount || 0)));
     setRemainingPaymentType(order.payment_type_remaining || 'cash');
-    setRemainingBalance(Number(order.remaining_balance || 0));
+    setRemainingBalance(String(Number(order.remaining_balance || 0)));
     setFormStatus(order.status || 'not_started');
     setShowForm(true);
   }
@@ -280,18 +279,21 @@ export default function Orders() {
     setSubmitting(true);
 
     try {
-      const isFullyPaid = paymentMethod === 'full' || (paymentMethod === 'deposit' && remainingBalance === 0);
-      const hasDebt = paymentMethod === 'deposit' && remainingBalance > 0;
+      const numAmount = Number(amount) || 0;
+      const numDeposit = Number(depositAmount) || 0;
+      const numRemaining = Number(remainingBalance) || 0;
+      const isFullyPaid = paymentMethod === 'full' || (paymentMethod === 'deposit' && numRemaining === 0);
+      const hasDebt = paymentMethod === 'deposit' && numRemaining > 0;
       const autoStatus = isFullyPaid ? 'paid' : (hasDebt && (editingOrder ? formStatus : 'not_started') === 'paid' ? 'finished' : (editingOrder ? formStatus : 'not_started'));
 
       const orderPayload = {
         product_type: productName,
         quantity: qty,
-        total_price: amount,
+        total_price: numAmount,
         payment_method: paymentType,
         payment_type: paymentMethod,
-        deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
-        remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
+        deposit_amount: paymentMethod === 'deposit' ? numDeposit : numAmount,
+        remaining_balance: paymentMethod === 'deposit' ? numRemaining : 0,
         payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
         status: autoStatus,
         payment_status: isFullyPaid ? 'paid' : 'partially_paid',
@@ -682,7 +684,7 @@ export default function Orders() {
 
                   <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('amount')}</label>
-                    <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} min={0} step="0.01" className={INPUT_CLASS} />
+                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} min={0} step="0.01" className={INPUT_CLASS} />
                   </div>
 
                   <div className="md:col-span-2">
@@ -733,7 +735,7 @@ export default function Orders() {
                   {paymentMethod === 'full' && (
                     <div>
                       <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('fullPaymentAmount')}</label>
-                      <input type="number" value={fullPaymentAmount} onChange={(e) => setFullPaymentAmount(Number(e.target.value))} min={0} step="0.01" className={INPUT_CLASS} />
+                      <input type="number" value={fullPaymentAmount} onChange={(e) => setFullPaymentAmount(e.target.value)} min={0} step="0.01" className={INPUT_CLASS} />
                     </div>
                   )}
 
@@ -741,7 +743,7 @@ export default function Orders() {
                     <>
                       <div>
                         <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('depositAmount')}</label>
-                        <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(Number(e.target.value))} min={0} step="0.01" className={INPUT_CLASS} />
+                        <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} min={0} step="0.01" className={INPUT_CLASS} />
                       </div>
                       <div className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg)]/50 space-y-3">
                         <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">{t('remainingBalance')}</p>
@@ -756,7 +758,7 @@ export default function Orders() {
                           </div>
                           <div>
                             <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('amount')}</label>
-                            <input type="number" value={remainingBalance} onChange={(e) => setRemainingBalance(Number(e.target.value))} min={0} step="0.01" className={INPUT_CLASS} />
+                            <input type="number" value={remainingBalance} onChange={(e) => setRemainingBalance(e.target.value)} min={0} step="0.01" className={INPUT_CLASS} />
                           </div>
                         </div>
                       </div>

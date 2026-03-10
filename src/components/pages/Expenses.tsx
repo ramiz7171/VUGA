@@ -53,7 +53,7 @@ export default function Expenses() {
     setLoading(true);
     try {
       const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false });
-      if (error) { setTimeout(() => fetchData(), 2000); return; }
+      if (error) { setLoading(false); return; }
       setExpenses(data || []);
     } finally {
       setLoading(false);
