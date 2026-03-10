@@ -147,15 +147,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    // Immediately set user and fetch profile — don't wait for onAuthStateChange
-    if (data.user) {
-      setUser(data.user);
-      setAuthLoading(true);
-      await fetchUserProfile(data.user.id);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+      // Immediately set user and fetch profile — don't wait for onAuthStateChange
+      if (data.user) {
+        setUser(data.user);
+        setAuthLoading(true);
+        await fetchUserProfile(data.user.id);
+      }
+      return { error: null };
+    } catch {
+      setAuthLoading(false);
+      return { error: 'Network error. Please try again.' };
     }
-    return { error: null };
   };
 
   const handleSignOut = async () => {

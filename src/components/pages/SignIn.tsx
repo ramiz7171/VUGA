@@ -16,11 +16,16 @@ export default function SignIn() {
     setError('');
     setLoading(true);
 
-    const { error: err } = await signIn(email, password);
-    if (err) {
-      setError(err);
+    try {
+      const { error: err } = await signIn(email, password);
+      if (err) {
+        setError(err);
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
