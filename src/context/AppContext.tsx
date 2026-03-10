@@ -63,21 +63,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-        .abortSignal(controller.signal);
-      clearTimeout(timeoutId);
-      if (data && !error) {
-        const profile = data as UserProfile;
-        setUserProfile(profile);
+      const result = await Promise.race([
+        supabase.from('users').select('*').eq('id', userId).single(),
+        new Promise<null>(resolve => setTimeout(() => resolve(null), 5000)),
+      ]);
+      if (result && 'data' in result && result.data && !result.error) {
+        setUserProfile(result.data as UserProfile);
       }
     } catch {
-      // Profile fetch failed or timed out - will show auth page
+      // Profile fetch failed or timed out
     }
     setAuthLoading(false);
   }, []);
