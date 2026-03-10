@@ -63,17 +63,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .single()
+        .abortSignal(controller.signal);
+      clearTimeout(timeoutId);
       if (data && !error) {
         const profile = data as UserProfile;
         setUserProfile(profile);
       }
     } catch {
-      // Profile fetch failed - will show auth page
+      // Profile fetch failed or timed out - will show auth page
     }
     setAuthLoading(false);
   }, []);
@@ -84,12 +88,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let initialDone = false;
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      clearTimeout(timeout);
       initialDone = true;
       if (session?.user) {
         setUser(session.user);
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id).then(() => clearTimeout(timeout));
       } else {
+        clearTimeout(timeout);
         setAuthLoading(false);
       }
     }).catch(() => {
