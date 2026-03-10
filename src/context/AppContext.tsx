@@ -146,9 +146,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)),
+      ]);
+      const { data, error } = result;
       if (error) return { error: error.message };
-      // Immediately set user and fetch profile — don't wait for onAuthStateChange
       if (data.user) {
         setUser(data.user);
         setAuthLoading(true);
@@ -157,7 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch {
       setAuthLoading(false);
-      return { error: 'Network error. Please try again.' };
+      return { error: 'Bağlantı xətası. Yenidən cəhd edin.' };
     }
   };
 
