@@ -50,7 +50,7 @@ export default function SignIn() {
               onChange={(e) => setUsername(e.target.value)}
               required
               autoComplete="username"
-              placeholder="admin"
+              placeholder="istifadəçi adı"
               className="w-full border border-[var(--border)] rounded-lg pl-10 pr-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>
