@@ -58,8 +58,9 @@ export default function Analytics() {
   const [balanceReason, setBalanceReason] = useState('');
   const [showLogs, setShowLogs] = useState(false);
 
-  // Month/Year filter — default to current month and year
+  // Day/Month/Year filter — default to current day, month and year
   const now = new Date();
+  const [filterDay, setFilterDay] = useState<string>(String(now.getDate()));
   const [filterMonth, setFilterMonth] = useState<string>(String(now.getMonth()));
   const [filterYear, setFilterYear] = useState<string>(String(now.getFullYear()));
 
@@ -96,10 +97,12 @@ export default function Analytics() {
     const d = new Date(dateStr);
     if (filterYear !== 'all' && d.getFullYear() !== Number(filterYear)) return false;
     if (filterMonth !== 'all' && d.getMonth() !== Number(filterMonth)) return false;
+    if (filterDay !== 'all' && d.getDate() !== Number(filterDay)) return false;
     return true;
   }
 
   function resetFilters() {
+    setFilterDay('all');
     setFilterMonth('all');
     setFilterYear('all');
   }
@@ -128,38 +131,53 @@ export default function Analytics() {
 
   // ---- NEW CHARTS DATA ----
 
-  // 1. Monthly Sales by days (order count per day of selected month)
-  const monthlySalesByDays = useMemo(() => {
+  // 1. Daily Sales by days (revenue per day for selected month)
+  const dailySalesByDays = useMemo(() => {
+    const yr = filterYear !== 'all' ? Number(filterYear) : now.getFullYear();
+    const mo = filterMonth !== 'all' ? Number(filterMonth) : now.getMonth();
     const map = new Map<number, number>();
-    filteredOrders.forEach(o => {
+    orders.forEach(o => {
       const d = new Date(o.order_date);
-      const day = d.getDate();
-      map.set(day, (map.get(day) || 0) + 1);
+      if (d.getFullYear() === yr && d.getMonth() === mo) {
+        const day = d.getDate();
+        map.set(day, (map.get(day) || 0) + Number(o.total_price || 0));
+      }
     });
-    const maxDay = filterMonth !== 'all' ? new Date(Number(filterYear !== 'all' ? filterYear : now.getFullYear()), Number(filterMonth) + 1, 0).getDate() : 31;
+    const maxDay = new Date(yr, mo + 1, 0).getDate();
     const result = [];
     for (let i = 1; i <= maxDay; i++) {
       result.push({ day: i, sales: map.get(i) || 0 });
     }
     return result;
-  }, [filteredOrders, filterMonth, filterYear]);
+  }, [orders, filterMonth, filterYear]);
 
-  // 2. Daily Profit by hours (revenue per hour for today)
-  const dailyProfitByHours = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const map = new Map<number, number>();
+  // 2b. Daily Profit by days (revenue - expenses per day for selected month)
+  const dailyProfitByDays = useMemo(() => {
+    const yr = filterYear !== 'all' ? Number(filterYear) : now.getFullYear();
+    const mo = filterMonth !== 'all' ? Number(filterMonth) : now.getMonth();
+    const revenueMap = new Map<number, number>();
+    const expenseMap = new Map<number, number>();
     orders.forEach(o => {
-      if (o.order_date?.slice(0, 10) === today) {
-        const h = new Date(o.order_date).getHours();
-        map.set(h, (map.get(h) || 0) + Number(o.total_price || 0));
+      const d = new Date(o.order_date);
+      if (d.getFullYear() === yr && d.getMonth() === mo) {
+        const day = d.getDate();
+        revenueMap.set(day, (revenueMap.get(day) || 0) + Number(o.total_price || 0));
       }
     });
+    expenses.forEach(e => {
+      const d = new Date(e.date);
+      if (d.getFullYear() === yr && d.getMonth() === mo) {
+        const day = d.getDate();
+        expenseMap.set(day, (expenseMap.get(day) || 0) + Number(e.amount || 0));
+      }
+    });
+    const maxDay = new Date(yr, mo + 1, 0).getDate();
     const result = [];
-    for (let i = 0; i < 24; i++) {
-      result.push({ hour: `${i}:00`, profit: map.get(i) || 0 });
+    for (let i = 1; i <= maxDay; i++) {
+      result.push({ day: i, profit: (revenueMap.get(i) || 0) - (expenseMap.get(i) || 0) });
     }
     return result;
-  }, [orders]);
+  }, [orders, expenses, filterMonth, filterYear]);
 
   // 3. Yearly Sales by months (order count per month for selected year)
   const yearlySalesByMonths = useMemo(() => {
@@ -260,13 +278,22 @@ export default function Analytics() {
     const newVal = Number(newBalance);
     if (isNaN(newVal)) return;
 
+    // Log the change
     await supabase.from('kassa_balance_logs').insert({
       old_balance: kassaBalance,
       new_balance: newVal,
       note: balanceReason,
       changed_by: userProfile?.name || '',
     });
-    await supabase.from('kassa_balance').update({ balance: newVal, updated_at: new Date().toISOString() }).eq('id', kassaId);
+
+    if (kassaId) {
+      // Update existing row
+      await supabase.from('kassa_balance').update({ balance: newVal, updated_at: new Date().toISOString() }).eq('id', kassaId);
+    } else {
+      // No row exists — create one
+      const { data } = await supabase.from('kassa_balance').insert({ balance: newVal, updated_at: new Date().toISOString() }).select().single();
+      if (data) setKassaId(data.id);
+    }
 
     setKassaBalance(newVal);
     setShowBalanceModal(false);
@@ -297,6 +324,16 @@ export default function Analytics() {
       <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)] shadow-sm">
         <div className="flex flex-wrap items-center gap-4">
           <Calendar size={16} className="text-[var(--text-secondary)]" />
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-secondary)]">{t('day')}:</span>
+            <select value={filterDay} onChange={e => setFilterDay(e.target.value)} className={SELECT_CLASS}>
+              <option value="all">{t('all')}</option>
+              {Array.from({ length: 31 }, (_, i) => (
+                <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--text-secondary)]">{t('month')}:</span>
@@ -355,6 +392,18 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Last Balance Update Info */}
+      {balanceLogs.length > 0 && (
+        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] shadow-sm p-4 text-sm text-[var(--text-secondary)]">
+          <p>
+            {t('changedBy')}: <span className="font-medium text-[var(--text)]">{balanceLogs[0].changed_by}</span>
+            {' — '}
+            {new Date(balanceLogs[0].created_at).toLocaleString()}
+            {balanceLogs[0].note && <> — {balanceLogs[0].note}</>}
+          </p>
+        </div>
+      )}
+
       {/* Balance Logs (collapsible) */}
       {balanceLogs.length > 0 && (
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] shadow-sm">
@@ -396,25 +445,25 @@ export default function Analytics() {
 
       {/* Bar Charts — 2x2 grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Monthly Sales by Days */}
-        <ChartCard title={t('monthlySales') + ` (${t('day')})`}>
+        {/* Daily Sales by Days */}
+        <ChartCard title={t('dailySalesChart')}>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={monthlySalesByDays}>
+            <BarChart data={dailySalesByDays}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={11} />
               <YAxis stroke="var(--text-secondary)" fontSize={12} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => [`₼${Number(value).toLocaleString()}`]} />
               <Bar dataKey="sales" fill="#102041" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Daily Profit by Hours */}
-        <ChartCard title={t('dailyProfit') + ` (${t('hour')})`}>
+        {/* Daily Profit by Days */}
+        <ChartCard title={t('dailyProfitChart')}>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={dailyProfitByHours}>
+            <BarChart data={dailyProfitByDays}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="hour" stroke="var(--text-secondary)" fontSize={11} />
+              <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={11} />
               <YAxis stroke="var(--text-secondary)" fontSize={12} />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => [`₼${Number(value).toLocaleString()}`]} />
               <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} />

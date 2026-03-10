@@ -12,6 +12,7 @@ import {
   Receipt,
   BarChart3,
   Users,
+  UsersRound,
   Settings,
   Languages,
   LogOut,
@@ -25,6 +26,7 @@ const menuItems = [
   { key: 'inventory', icon: Warehouse, labelKey: 'inventory' as const },
   { key: 'expenses', icon: Receipt, labelKey: 'expenses' as const },
   { key: 'analytics', icon: BarChart3, labelKey: 'analytics' as const },
+  { key: 'employees', icon: UsersRound, labelKey: 'employees' as const },
   { key: 'users', icon: Users, labelKey: 'users' as const },
   { key: 'settings', icon: Settings, labelKey: 'settings' as const },
 ];

@@ -3,7 +3,7 @@
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Eye, Pencil, Trash2, X, ShoppingCart, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, X, ShoppingCart, Filter } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Customer {
@@ -71,8 +71,6 @@ export default function Orders() {
   const [filterAmountMin, setFilterAmountMin] = useState('');
   const [filterAmountMax, setFilterAmountMax] = useState('');
 
-  // Status dropdown
-  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
 
   // Form state — Customer Info
   const [customerName, setCustomerName] = useState('');
@@ -133,13 +131,6 @@ export default function Orders() {
     }
   }, [amount, paymentMethod]);
 
-  // Close status dropdown on outside click
-  useEffect(() => {
-    if (!statusDropdownId) return;
-    const handler = () => setStatusDropdownId(null);
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
-  }, [statusDropdownId]);
 
   async function fetchOrders() {
     setLoading(true);
@@ -259,6 +250,9 @@ export default function Orders() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    const isFullyPaid = paymentMethod === 'full' || remainingBalance === 0;
+    const autoStatus = isFullyPaid ? 'paid' : (editingOrder ? formStatus : 'not_started');
+
     const orderPayload = {
       product_type: productName,
       quantity: qty,
@@ -268,8 +262,8 @@ export default function Orders() {
       deposit_amount: paymentMethod === 'deposit' ? depositAmount : amount,
       remaining_balance: paymentMethod === 'deposit' ? remainingBalance : 0,
       payment_type_remaining: paymentMethod === 'deposit' ? remainingPaymentType : null,
-      status: editingOrder ? formStatus : 'not_started',
-      payment_status: paymentMethod === 'full' || remainingBalance === 0 ? 'paid' : 'partially_paid',
+      status: autoStatus,
+      payment_status: isFullyPaid ? 'paid' : 'partially_paid',
       notes: orderNotes,
       source,
       delivery_date: deliveryDate || null,
@@ -313,11 +307,6 @@ export default function Orders() {
     fetchOrders();
   }
 
-  async function handleStatusChange(orderId: string, newStatus: string) {
-    await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    setStatusDropdownId(null);
-  }
 
   const statusLabel = (s: string) => {
     const map: Record<string, string> = {
@@ -454,13 +443,9 @@ export default function Orders() {
                   <td className="p-4 font-mono text-xs">#{order.order_number}</td>
                   <td className="p-4 font-medium">{order.customer?.name || '-'}</td>
                   <td className="p-4">
-                    <StatusDropdown
-                      currentStatus={order.status}
-                      isOpen={statusDropdownId === order.id}
-                      onToggle={() => setStatusDropdownId(statusDropdownId === order.id ? null : order.id)}
-                      onSelect={(status) => handleStatusChange(order.id, status)}
-                      statusLabel={statusLabel}
-                    />
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${STATUS_COLORS[order.status] || ''}`}>
+                      {statusLabel(order.status)}
+                    </span>
                   </td>
                   <td className="p-4 text-[var(--text-secondary)]">{order.delivery_date || '-'}</td>
                   <td className="p-4 font-medium">₼{Number(order.total_price).toLocaleString()}</td>
@@ -553,13 +538,25 @@ export default function Orders() {
             <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* Author (read-only) */}
-              <div>
-                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('author')}</label>
-                <input
-                  value={editingOrder ? (userMap[editingOrder.created_by] || '-') : (userProfile?.name || '')}
-                  readOnly
-                  className={`${INPUT_CLASS} bg-gray-100 dark:bg-gray-800 cursor-not-allowed`}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('author')}</label>
+                  <input
+                    value={editingOrder ? (userMap[editingOrder.created_by] || '-') : (userProfile?.name || '')}
+                    readOnly
+                    className={`${INPUT_CLASS} bg-gray-100 dark:bg-gray-800 cursor-not-allowed`}
+                  />
+                </div>
+
+                {/* Order Taken By (read-only, auto-filled with current user) */}
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">{t('orderTakenBy')}</label>
+                  <input
+                    value={userProfile?.name || ''}
+                    readOnly
+                    className={`${INPUT_CLASS} bg-gray-100 dark:bg-gray-800 cursor-not-allowed`}
+                  />
+                </div>
               </div>
 
               {/* SECTION: Customer Information */}
@@ -744,46 +741,6 @@ export default function Orders() {
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
       />
-    </div>
-  );
-}
-
-// Interactive Status Dropdown component
-function StatusDropdown({
-  currentStatus, isOpen, onToggle, onSelect, statusLabel,
-}: {
-  currentStatus: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  onSelect: (status: string) => void;
-  statusLabel: (s: string) => string;
-}) {
-  return (
-    <div className="relative">
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition ${STATUS_COLORS[currentStatus] || ''}`}
-      >
-        {statusLabel(currentStatus)}
-        <ChevronDown size={12} />
-      </button>
-      {isOpen && (
-        <div
-          className="absolute z-20 top-full left-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[160px]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => onSelect(s)}
-              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-accent/50 transition flex items-center gap-2 ${s === currentStatus ? 'font-semibold' : ''}`}
-            >
-              <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[s]?.split(' ')[0] || 'bg-gray-300'}`} />
-              {statusLabel(s)}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

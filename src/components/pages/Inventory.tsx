@@ -31,7 +31,7 @@ export default function Inventory() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  if (!userProfile || !['admin', 'moderator'].includes(userProfile.role)) {
+  if (!userProfile) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-2">
         <p className="text-lg font-semibold">{t('accessDenied')}</p>

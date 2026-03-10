@@ -35,8 +35,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ACCESS_MAP: Record<UserRole, string[]> = {
-  admin: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'analytics', 'users', 'settings'],
-  moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'settings'],
+  admin: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'analytics', 'employees', 'users', 'settings'],
+  moderator: ['dashboard', 'orders', 'orderTracking', 'inventory', 'expenses', 'employees', 'settings'],
   user: ['orders', 'orderTracking', 'inventory', 'expenses'],
 };
 

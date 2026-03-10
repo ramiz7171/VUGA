@@ -5,6 +5,7 @@ export const ROUTE_MAP: Record<string, { path: string; pageKey: string }> = {
   inventory:     { path: '/inventory',  pageKey: 'inventory' },
   expenses:      { path: '/expenses',   pageKey: 'expenses' },
   analytics:     { path: '/analytics',  pageKey: 'analytics' },
+  employees:     { path: '/employees',  pageKey: 'employees' },
   users:         { path: '/users',      pageKey: 'users' },
   settings:      { path: '/settings',   pageKey: 'settings' },
 };
