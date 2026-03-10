@@ -67,7 +67,19 @@ export default function Analytics() {
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchAnalytics(); }, []);
+  useEffect(() => {
+    fetchAnalytics();
+
+    const channel = supabase
+      .channel('analytics-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchAnalytics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchAnalytics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kassa_balance' }, () => fetchAnalytics())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kassa_balance_logs' }, () => fetchAnalytics())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   async function fetchAnalytics() {
     setLoading(true);

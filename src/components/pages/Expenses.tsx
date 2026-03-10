@@ -33,7 +33,18 @@ export default function Expenses() {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
-  useEffect(() => { fetchData(); fetchExpenseTypes(); }, []);
+  useEffect(() => {
+    fetchData();
+    fetchExpenseTypes();
+
+    const channel = supabase
+      .channel('expenses-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_types' }, () => fetchExpenseTypes())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   async function fetchExpenseTypes() {
     try {

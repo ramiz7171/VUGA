@@ -35,6 +35,14 @@ export default function Employees() {
 
   useEffect(() => {
     fetchData();
+
+    const channel = supabase
+      .channel('employees-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function fetchData() {

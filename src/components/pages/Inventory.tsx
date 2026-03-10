@@ -30,7 +30,16 @@ export default function Inventory() {
   const [color, setColor] = useState('');
   const [productValue, setProductValue] = useState(0);
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+
+    const channel = supabase
+      .channel('inventory-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   if (!userProfile) {
     return (

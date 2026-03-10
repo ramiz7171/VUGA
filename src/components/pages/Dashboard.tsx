@@ -32,6 +32,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
+
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => fetchData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {
