@@ -237,6 +237,7 @@ export const translations = {
     // Auth
     signIn: 'Daxil ol',
     signUp: 'Qeydiyyat',
+    username: 'İstifadəçi adı',
     email: 'E-poçt',
     password: 'Şifrə',
     confirmPassword: 'Şifrəni təsdiqlə',
@@ -568,6 +569,7 @@ export const translations = {
     // Auth
     signIn: 'Sign In',
     signUp: 'Sign Up',
+    username: 'Username',
     email: 'Email',
     password: 'Password',
     confirmPassword: 'Confirm Password',

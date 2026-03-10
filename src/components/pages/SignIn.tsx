@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { User, Lock, Loader2 } from 'lucide-react';
 
 export default function SignIn() {
   const { t, signIn } = useApp();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +17,7 @@ export default function SignIn() {
     setLoading(true);
 
     try {
+      const email = username.includes('@') ? username : `${username}@vugacrm.com`;
       const { error: err } = await signIn(email, password);
       if (err) {
         setError(err);
@@ -40,16 +41,16 @@ export default function SignIn() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-sm text-[var(--text-secondary)] mb-1.5 block">{t('email')}</label>
+          <label className="text-sm text-[var(--text-secondary)] mb-1.5 block">{t('username')}</label>
           <div className="relative">
-            <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
+            <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
-              autoComplete="email"
-              placeholder="email@example.com"
+              autoComplete="username"
+              placeholder="admin"
               className="w-full border border-[var(--border)] rounded-lg pl-10 pr-3 py-2.5 text-sm bg-[var(--bg)] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>
