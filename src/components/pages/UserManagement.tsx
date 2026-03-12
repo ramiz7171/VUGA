@@ -238,7 +238,7 @@ export default function UserManagement() {
                     </span>
                   </td>
                   <td className="p-4 text-[var(--text-secondary)]">
-                    {new Date(u.created_at).toLocaleDateString()}
+                    {new Date(u.created_at).toLocaleDateString('az-AZ', { timeZone: 'Asia/Baku', year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </td>
                   <td className="p-4">
                     {u.id === userProfile.id ? (

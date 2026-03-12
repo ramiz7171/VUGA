@@ -152,7 +152,7 @@ export default function Inventory() {
                   </td>
                   <td className="p-4">{p.color || '-'}</td>
                   <td className="p-4">₼{Number(p.selling_price).toLocaleString()}</td>
-                  <td className="p-4 text-[var(--text-secondary)]">{new Date(p.updated_at).toLocaleDateString()}</td>
+                  <td className="p-4 text-[var(--text-secondary)]">{new Date(p.updated_at).toLocaleDateString('az-AZ', { timeZone: 'Asia/Baku', year: 'numeric', month: '2-digit', day: '2-digit' })}</td>
                   <td className="p-4">
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-accent transition" title={t('edit')}>

@@ -78,7 +78,7 @@ export default function Dashboard() {
     // Daily Sales (last 7 days)
     const dailyMap = new Map<string, number>();
     orders.forEach((o) => {
-      const d = new Date(o.order_date).toISOString().split('T')[0];
+      const d = new Date(o.order_date).toLocaleDateString('sv-SE', { timeZone: 'Asia/Baku' });
       dailyMap.set(d, (dailyMap.get(d) || 0) + Number(o.total_price || 0));
     });
     setDailySales(

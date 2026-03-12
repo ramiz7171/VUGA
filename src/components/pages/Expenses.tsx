@@ -26,7 +26,7 @@ export default function Expenses() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Baku' }));
   const createdBy = userProfile?.name || '';
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');

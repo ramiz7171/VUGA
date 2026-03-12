@@ -60,7 +60,7 @@ export default function Analytics() {
   const [showLogs, setShowLogs] = useState(false);
 
   // Day/Month/Year filter — default to "all" (no specific date selected)
-  const now = new Date();
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baku' }));
   const [filterDay, setFilterDay] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<string>('all');
@@ -431,7 +431,7 @@ export default function Analytics() {
           <p>
             {t('changedBy')}: <span className="font-medium text-[var(--text)]">{balanceLogs[0].changed_by}</span>
             {' — '}
-            {new Date(balanceLogs[0].created_at).toLocaleString()}
+            {new Date(balanceLogs[0].created_at).toLocaleString('az-AZ', { timeZone: 'Asia/Baku' })}
             {balanceLogs[0].note && <> — {balanceLogs[0].note}</>}
           </p>
         </div>
@@ -462,7 +462,7 @@ export default function Analytics() {
                 <tbody>
                   {balanceLogs.map(log => (
                     <tr key={log.id} className="border-b border-[var(--border)]">
-                      <td className="p-3">{new Date(log.created_at).toLocaleString()}</td>
+                      <td className="p-3">{new Date(log.created_at).toLocaleString('az-AZ', { timeZone: 'Asia/Baku' })}</td>
                       <td className="p-3">₼{Number(log.old_balance).toLocaleString()}</td>
                       <td className="p-3 font-medium">₼{Number(log.new_balance).toLocaleString()}</td>
                       <td className="p-3 text-[var(--text-secondary)]">{log.note || '-'}</td>

@@ -48,6 +48,22 @@ const STATUS_COLORS: Record<string, string> = {
 const INPUT_CLASS = 'w-full border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20';
 const FILTER_INPUT = 'border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs bg-[var(--bg)] outline-none focus:ring-2 focus:ring-primary/20';
 
+/** Get current date string (YYYY-MM-DD) in Baku timezone */
+function getBakuDateStr(date?: Date): string {
+  const d = date || new Date();
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Baku' });
+}
+
+/** Format a date string for display in Baku timezone */
+function formatBakuDate(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('az-AZ', { timeZone: 'Asia/Baku', year: 'numeric', month: '2-digit', day: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function Orders() {
   const { t, user, userProfile } = useApp();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -76,7 +92,7 @@ export default function Orders() {
   // Form state — Customer Info
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+  const [orderDate, setOrderDate] = useState(getBakuDateStr());
   const [deliveryDate, setDeliveryDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
 
@@ -232,7 +248,7 @@ export default function Orders() {
 
   function resetForm() {
     setCustomerName(''); setCustomerPhone('');
-    setOrderDate(new Date().toISOString().split('T')[0]);
+    setOrderDate(getBakuDateStr());
     setDeliveryDate(''); setAssignedTo('');
     setProductName(''); setSource(orderSources[0]?.value || 'instagram');
     setQty(1); setAmount(''); setOrderNotes('');
@@ -255,7 +271,7 @@ export default function Orders() {
     setCustomerName(order.customer?.name || '');
     setCustomerPhone(order.customer?.phone || '');
     setCustomerSearch(order.customer?.name || '');
-    setOrderDate(order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : '');
+    setOrderDate(order.order_date ? getBakuDateStr(new Date(order.order_date)) : '');
     setDeliveryDate(order.delivery_date || '');
     setAssignedTo(order.assigned_to || '');
     setProductName(order.product_type || '');
@@ -454,7 +470,7 @@ export default function Orders() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('date')}</th>
+              <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('date')} <span className="text-[10px] opacity-60">(BAKU)</span></th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('orderNumber')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('customerName')}</th>
               <th className="text-left p-4 font-medium text-[var(--text-secondary)]">{t('status')}</th>
@@ -478,7 +494,7 @@ export default function Orders() {
             ) : (
               filteredOrders.map((order) => (
                 <tr key={order.id} className="border-b border-[var(--border)] hover:bg-accent/30 transition">
-                  <td className="p-4">{new Date(order.order_date).toLocaleDateString()}</td>
+                  <td className="p-4">{formatBakuDate(order.order_date)}</td>
                   <td className="p-4 font-mono text-xs">#{order.order_number}</td>
                   <td className="p-4 font-medium">{order.customer?.name || '-'}</td>
                   <td className="p-4">
