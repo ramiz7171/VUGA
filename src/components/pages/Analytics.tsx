@@ -82,7 +82,6 @@ export default function Analytics() {
   }, []);
 
   async function fetchAnalytics() {
-    setLoading(true);
     try {
       const [ordersRes, expensesRes, balanceRes, logsRes, usersRes, sourcesRes] = await Promise.all([
         supabase.from('orders').select('order_date, total_price, payment_method, status, created_by, source'),

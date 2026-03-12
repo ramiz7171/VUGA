@@ -51,7 +51,6 @@ export default function Inventory() {
   }
 
   async function fetchProducts() {
-    setLoading(true);
     try {
       const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) { setLoading(false); return; }

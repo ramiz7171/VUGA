@@ -159,7 +159,6 @@ export default function Orders() {
 
 
   async function fetchOrders() {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('orders')

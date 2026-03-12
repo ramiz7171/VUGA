@@ -48,10 +48,14 @@ const INPUT_CLASS = 'w-full border border-[var(--border)] rounded-lg px-3 py-2.5
 
 function getDeadlineInfo(deliveryDate: string | null): { border: string; badge: string; badgeText: string; label: string } {
   if (!deliveryDate) return { border: 'border-l-gray-300 dark:border-l-gray-600', badge: '', badgeText: '', label: '' };
-  const bakuNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baku' }));
-  bakuNow.setHours(0, 0, 0, 0);
-  const deadline = new Date(deliveryDate);
-  const diffDays = Math.ceil((deadline.getTime() - bakuNow.getTime()) / (1000 * 60 * 60 * 24));
+  // Get today's date in Baku timezone as YYYY-MM-DD
+  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Baku' });
+  // Parse both dates as local midnight to avoid timezone offset issues
+  const [ty, tm, td] = todayStr.split('-').map(Number);
+  const [dy, dm, dd] = deliveryDate.split('-').map(Number);
+  const today = new Date(ty, tm - 1, td);
+  const deadline = new Date(dy, dm - 1, dd);
+  const diffDays = Math.round((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return { border: 'border-l-red-900', badge: 'bg-red-900 text-white', badgeText: 'Gecikmiş', label: `${Math.abs(diffDays)} gün gecikmiş` };
   if (diffDays <= 1) return { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', badgeText: 'Təcili', label: diffDays === 0 ? 'Bu gün' : '1 gün qalıb' };
   if (diffDays <= 3) return { border: 'border-l-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', badgeText: 'Xəbərdarlıq', label: `${diffDays} gün qalıb` };

@@ -46,7 +46,6 @@ export default function UserManagement() {
   useEffect(() => { fetchUsers(); }, []);
 
   async function fetchUsers() {
-    setLoading(true);
     const { data } = await supabase
       .from('users')
       .select('*')

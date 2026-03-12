@@ -54,7 +54,6 @@ export default function Dashboard() {
   }
 
   async function fetchData() {
-    setLoading(true);
     try {
       const [ordersRes, expensesRes, productsRes, customersRes] = await Promise.all([
         supabase.from('orders').select('*'),
