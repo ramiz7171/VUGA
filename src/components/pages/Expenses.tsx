@@ -34,7 +34,8 @@ export default function Expenses() {
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    fetchData();
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchData().then(() => clearTimeout(timeout));
     fetchExpenseTypes();
 
     const channel = supabase
@@ -43,7 +44,7 @@ export default function Expenses() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_types' }, () => fetchExpenseTypes())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, []);
 
   async function fetchExpenseTypes() {

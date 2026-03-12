@@ -124,7 +124,8 @@ export default function OrderTracking() {
   }
 
   useEffect(() => {
-    fetchOrders();
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchOrders().then(() => clearTimeout(timeout));
     fetchUsers();
 
     const channel = supabase
@@ -136,7 +137,7 @@ export default function OrderTracking() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, [fetchOrders]);
 
   const canEditOrder = (order: Order) => {

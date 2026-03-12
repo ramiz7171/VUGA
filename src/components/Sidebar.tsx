@@ -127,11 +127,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               <Link
                 key={item.key}
                 href={path}
-                onClick={(e) => {
-                  e.preventDefault();
-                  router.push(path);
-                  onClose();
-                }}
+                onClick={onClose}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-accent text-primary'

@@ -68,7 +68,8 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAnalytics();
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchAnalytics().then(() => clearTimeout(timeout));
 
     const channel = supabase
       .channel('analytics-realtime')
@@ -78,7 +79,7 @@ export default function Analytics() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kassa_balance_logs' }, () => fetchAnalytics())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, []);
 
   async function fetchAnalytics() {

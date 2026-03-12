@@ -31,7 +31,8 @@ export default function Dashboard() {
   const [orderStatusDist, setOrderStatusDist] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
-    fetchData();
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchData().then(() => clearTimeout(timeout));
 
     const channel = supabase
       .channel('dashboard-realtime')
@@ -41,7 +42,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => fetchData())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, []);
 
   if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {

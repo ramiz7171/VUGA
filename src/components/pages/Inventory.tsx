@@ -31,14 +31,15 @@ export default function Inventory() {
   const [productValue, setProductValue] = useState(0);
 
   useEffect(() => {
-    fetchProducts();
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchProducts().then(() => clearTimeout(timeout));
 
     const channel = supabase
       .channel('inventory-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, []);
 
   if (!userProfile) {

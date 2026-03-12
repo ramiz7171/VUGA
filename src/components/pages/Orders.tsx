@@ -126,7 +126,9 @@ export default function Orders() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   useEffect(() => {
-    fetchOrders();
+    // Safety timeout: stop loading after 8s even if fetch hangs
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchOrders().then(() => clearTimeout(timeout));
     fetchCustomers();
     fetchUsers();
     fetchOrderSources();
@@ -141,7 +143,7 @@ export default function Orders() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timeout); supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {

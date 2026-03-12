@@ -43,7 +43,11 @@ export default function UserManagement() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    fetchUsers().then(() => clearTimeout(timeout));
+    return () => { clearTimeout(timeout); };
+  }, []);
 
   async function fetchUsers() {
     const { data } = await supabase
